@@ -42,7 +42,7 @@ mac::mac() : timers_db(128), timers_thread(&timers_db), tti(0), last_rnti(0),
              rar_pdu_msg(sched_interface::MAX_RAR_LIST), rar_payload(),
              pdu_process_thread(this)
 {
-  started = false;  
+  started = false;
   pcap = NULL;
   phy_h = NULL;
   rlc_h = NULL;
@@ -78,8 +78,8 @@ bool mac::init(const mac_args_t&        args_,
 
   if (cell_ && phy && rlc && log_h_) {
     phy_h = phy;
-    rlc_h = rlc; 
-    rrc_h = rrc; 
+    rlc_h = rlc;
+    rrc_h = rrc;
     log_h = log_h_;
 
     args = args_;
@@ -88,10 +88,10 @@ bool mac::init(const mac_args_t&        args_,
     scheduler.init(rrc, log_h);
     // Set default scheduler (RR)
     scheduler.set_metric(&sched_metric_dl_rr, &sched_metric_ul_rr);
-    
-    // Set default scheduler configuration 
+
+    // Set default scheduler configuration
     scheduler.set_sched_cfg(&args.sched);
-    
+
     // Init softbuffer for SI messages
     for (int i=0;i<NOF_BCCH_DLSCH_MSG;i++) {
       srslte_softbuffer_tx_init(&bcch_softbuffer_tx[i], cell.nof_prb);
@@ -99,7 +99,7 @@ bool mac::init(const mac_args_t&        args_,
     // Init softbuffer for PCCH
     srslte_softbuffer_tx_init(&pcch_softbuffer_tx, cell.nof_prb);
 
-    // Init softbuffer for RAR 
+    // Init softbuffer for RAR
     srslte_softbuffer_tx_init(&rar_softbuffer_tx, cell.nof_prb);
 
     reset();
@@ -494,7 +494,7 @@ int mac::rach_detected(uint32_t tti, uint32_t preamble_idx, uint32_t time_adv)
 
   // Save RA info
   pending_rars[ra_id].preamble_idx = preamble_idx;
-  pending_rars[ra_id].ta_cmd       = time_adv;
+  pending_rars[ra_id].ta_cmd       = 2*time_adv;
   pending_rars[ra_id].temp_crnti   = last_rnti;
 
   // Add new user to the scheduler so that it can RX/TX SRB0
@@ -990,6 +990,3 @@ void mac::write_mcch(sib_type2_s* sib2, sib_type13_r9_s* sib13, mcch_msg_s* mcch
 }
 
 }
-
-
-

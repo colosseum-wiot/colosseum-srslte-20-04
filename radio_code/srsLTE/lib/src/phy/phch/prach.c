@@ -66,7 +66,7 @@ srslte_prach_sfn_t srslte_prach_get_sfn(uint32_t config_idx) {
   }
 }
 
-/* Returns true if current_tti is a valid opportunity for PRACH transmission and the is an allowed subframe, 
+/* Returns true if current_tti is a valid opportunity for PRACH transmission and the is an allowed subframe,
  * or allowed_subframe == -1
  */
 bool srslte_prach_tti_opportunity(srslte_prach_t *p, uint32_t current_tti, int allowed_subframe) {
@@ -644,15 +644,16 @@ int srslte_prach_detect_offset(srslte_prach_t* p,
               peak_to_avg[*n_indices] = p->peak_values[j] / corr_ave;
             }
             if (t_offsets) {
-              float corr = 1.8;
-              if (p->peak_offsets[j] > 30) {
-                corr = 1.9;
-              }
-              if (p->peak_offsets[j] > 250) {
-                corr = 1.91;
-              }
-
-              t_offsets[*n_indices] = corr*p->peak_offsets[j]/(DELTA_F_RA * p->N_zc);
+              t_offsets[*n_indices] = (float) p->peak_offsets[j] * p->T_seq / p->N_zc;
+              // float corr = 1.8;
+              // if (p->peak_offsets[j] > 30) {
+              //   corr = 1.9;
+              // }
+              // if (p->peak_offsets[j] > 250) {
+              //   corr = 1.91;
+              // }
+              //
+              // t_offsets[*n_indices] = corr*p->peak_offsets[j]/(DELTA_F_RA * p->N_zc);
             }
             (*n_indices)++;
           }
