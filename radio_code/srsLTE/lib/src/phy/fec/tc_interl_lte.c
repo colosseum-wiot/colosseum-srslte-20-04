@@ -1,12 +1,7 @@
-/**
+/*
+ * Copyright 2013-2019 Software Radio Systems Limited
  *
- * \section COPYRIGHT
- *
- * Copyright 2013-2015 Software Radio Systems Limited
- *
- * \section LICENSE
- *
- * This file is part of the srsLTE library.
+ * This file is part of srsLTE.
  *
  * srsLTE is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as
@@ -66,19 +61,27 @@ const uint32_t f2_list[SRSLTE_NOF_TC_CB_SIZES] = { 10, 12, 42, 16, 18, 20, 22, 2
     280, 142, 480, 146, 444, 120, 152, 462, 234, 158, 80, 96, 902, 166, 336,
     170, 86, 174, 176, 178, 120, 182, 184, 186, 94, 190, 480 };
 
-int srslte_tc_interl_LTE_gen(srslte_tc_interl_t *h, uint32_t long_cb) {
+int srslte_tc_interl_LTE_gen(srslte_tc_interl_t *h, uint32_t long_cb)
+{
+  return srslte_tc_interl_LTE_gen_interl(h, long_cb, 1);
+}
+
+#define deinter(x,win) ((x%(long_cb/win))*(win)+x/(long_cb/win))
+#define inter(x,win) ((x%win)*(long_cb/win)+x/win)
+
+
+int srslte_tc_interl_LTE_gen_interl(srslte_tc_interl_t *h, uint32_t long_cb, uint32_t interl_win) {
   uint32_t cb_table_idx, f1, f2;
   uint64_t i, j;
 
   if (long_cb > h->max_long_cb) {
-    fprintf(stderr, "Interleaver initiated for max_long_cb=%d\n",
-        h->max_long_cb);
+    ERROR("Interleaver initiated for max_long_cb=%d\n", h->max_long_cb);
     return -1;
   }
 
   cb_table_idx = srslte_cbsegm_cbindex(long_cb);
   if (cb_table_idx == -1) {
-    fprintf(stderr, "Can't find long_cb=%d in valid TC CB table\n", long_cb);
+    ERROR("Can't find long_cb=%d in valid TC CB table\n", long_cb);
     return -1;
   }
 
@@ -92,6 +95,19 @@ int srslte_tc_interl_LTE_gen(srslte_tc_interl_t *h, uint32_t long_cb) {
     h->forward[i] = (uint32_t) j;
     h->reverse[j] = (uint32_t) i;
   }
+  if (interl_win != 1) {
+    uint16_t *f = malloc(long_cb*sizeof(uint16_t));
+    uint16_t *r = malloc(long_cb*sizeof(uint16_t));
+    memcpy(f, h->forward, long_cb*sizeof(uint16_t));
+    memcpy(r, h->reverse, long_cb*sizeof(uint16_t));
+    for (i = 0; i < long_cb; i++) {
+      h->forward[i] = deinter(f[inter(i,interl_win)],interl_win);
+      h->reverse[i] = deinter(r[inter(i,interl_win)],interl_win);
+    }
+    free(f);
+    free(r);
+  }
+
   return 0;
 
 }

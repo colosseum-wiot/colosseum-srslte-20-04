@@ -1,19 +1,14 @@
-/**
- *
- * \section COPYRIGHT
- *
- * Copyright 2013-2017 Software Radio Systems Limited
- *
- * \section LICENSE
+/*
+ * Copyright 2013-2019 Software Radio Systems Limited
  *
  * This file is part of srsLTE.
  *
- * srsUE is free software: you can redistribute it and/or modify
+ * srsLTE is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as
  * published by the Free Software Foundation, either version 3 of
  * the License, or (at your option) any later version.
  *
- * srsUE is distributed in the hope that it will be useful,
+ * srsLTE is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU Affero General Public License for more details.
@@ -24,6 +19,7 @@
  *
  */
 
+#include "srslte/common/common.h"
 #include "srslte/srslte.h"
 
 #ifndef SRSLTE_SCHED_INTERFACE_H
@@ -33,8 +29,11 @@ namespace srsenb {
 
 class sched_interface
 {
-public: 
- 
+public:
+  const static uint32_t max_cce = 128;
+  const static uint32_t max_prb = 100;
+  const static uint32_t max_rbg = 25;
+
   const static int MAX_SIB_PAYLOAD_LEN = 2048; 
   const static int MAX_SIBS            = 16;
   const static int MAX_LC              = 6; 
@@ -80,7 +79,10 @@ public:
     uint32_t maxharq_msg3tx;
     uint32_t n1pucch_an;
     uint32_t delta_pucch_shift; 
-    
+
+    // If non-negative, statically allocate N prbs at the edges of the uplink for PUCCH
+    int      nrb_pucch;
+
     uint32_t nrb_cqi; 
     uint32_t ncs_an;
     
@@ -100,26 +102,18 @@ public:
   } ue_bearer_cfg_t; 
   
   typedef struct {
-    
-    bool continuous_pusch; 
-    
+
     /* ue capabilities, etc */
-    
-    uint32_t maxharq_tx; 
+
+    uint32_t maxharq_tx;
+    bool     continuous_pusch;
+
+    srslte_uci_offset_cfg_t uci_offset;
+    srslte_pucch_cfg_t      pucch_cfg;
+
     uint32_t aperiodic_cqi_period; // if 0 is periodic CQI
-    uint32_t beta_ack_index;
-    uint32_t beta_ri_index;
-    uint32_t beta_cqi_index;
-    
-    srslte_pucch_cfg_t pucch_cfg; 
-    uint32_t n_pucch_cqi; 
-    uint32_t sr_I; 
-    uint32_t sr_N_pucch; 
-    bool     sr_enabled; 
-    uint32_t cqi_pucch; 
-    uint32_t cqi_idx; 
-    bool     cqi_enabled; 
-    
+    srslte_dl_cfg_t dl_cfg;
+
     ue_bearer_cfg_t ue_bearers[MAX_LC]; 
     
   } ue_cfg_t; 
@@ -129,11 +123,24 @@ public:
     uint32_t nbytes;
   } dl_sched_pdu_t; 
   
+  
   typedef struct {
-    uint32_t              rnti; 
-    srslte_dci_format_t   dci_format;
-    srslte_ra_dl_dci_t    dci;     
-    srslte_dci_location_t dci_location;
+    uint32_t lcid;
+    uint32_t lcid_buffer_size;
+    uint32_t stop;
+    uint8_t* mtch_payload;
+  } dl_mtch_sched_t;
+  
+  typedef struct {
+    dl_sched_pdu_t pdu[20];
+    dl_mtch_sched_t mtch_sched[8];
+    uint32_t num_mtch_sched;
+    uint8_t *mcch_payload;
+    uint32_t current_sf_allocation_num;
+  } dl_pdu_mch_t; 
+ 
+  typedef struct {
+    srslte_dci_dl_t       dci;
     uint32_t              tbs[SRSLTE_MAX_TB];
     bool mac_ce_ta;
     bool mac_ce_rnti;
@@ -142,12 +149,10 @@ public:
   } dl_sched_data_t;
   
   typedef struct {
-    uint32_t              rnti;
-    bool                  needs_pdcch; 
-    uint32_t              current_tx_nb; 
-    uint32_t              tbs; 
-    srslte_ra_ul_dci_t    dci;     
-    srslte_dci_location_t dci_location;
+    bool            needs_pdcch;
+    uint32_t        current_tx_nb;
+    uint32_t        tbs;
+    srslte_dci_ul_t dci;
   } ul_sched_data_t;
   
   typedef struct {
@@ -156,17 +161,14 @@ public:
   } dl_sched_rar_grant_t;
   
   typedef struct {
-    uint32_t               rarnti; 
-    uint32_t               tbs;         
-    srslte_ra_dl_dci_t     dci; 
-    srslte_dci_location_t  dci_location;
-    uint32_t               nof_grants; 
-    dl_sched_rar_grant_t   grants[MAX_RAR_LIST];    
+    uint32_t             tbs;
+    srslte_dci_dl_t      dci;
+    uint32_t             nof_grants;
+    dl_sched_rar_grant_t msg3_grant[MAX_RAR_LIST];
   } dl_sched_rar_t; 
 
   typedef struct {
-    srslte_ra_dl_dci_t dci; 
-    srslte_dci_location_t  dci_location;
+    srslte_dci_dl_t dci;
 
     enum bc_type {
       BCCH, PCCH
@@ -242,8 +244,10 @@ public:
   
   /* Run Scheduler for this tti */
   virtual int dl_sched(uint32_t tti, dl_sched_res_t *sched_result) = 0; 
-  virtual int ul_sched(uint32_t tti, ul_sched_res_t *sched_result) = 0; 
-    
+  virtual int ul_sched(uint32_t tti, ul_sched_res_t *sched_result) = 0;
+
+  /* Custom */
+  virtual void set_dl_tti_mask(uint8_t* tti_mask, uint32_t nof_sfs) = 0;
 };
 
 }

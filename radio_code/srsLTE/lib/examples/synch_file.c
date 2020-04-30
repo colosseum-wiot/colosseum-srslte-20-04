@@ -1,12 +1,7 @@
-/**
+/*
+ * Copyright 2013-2019 Software Radio Systems Limited
  *
- * \section COPYRIGHT
- *
- * Copyright 2013-2015 Software Radio Systems Limited
- *
- * \section LICENSE
- *
- * This file is part of the srsLTE library.
+ * This file is part of srsLTE.
  *
  * srsLTE is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as
@@ -113,7 +108,7 @@ int main(int argc, char **argv) {
   uint32_t m0, m1;
   float m0_value, m1_value;
   uint32_t N_id_2;
-  uint32_t sss_idx;
+  int sss_idx;
   struct timeval tdata[3];
   int *exec_time;
 
@@ -128,11 +123,11 @@ int main(int argc, char **argv) {
   printf("Initializing...");fflush(stdout);
 
   if (srslte_filesource_init(&fsrc, input_file_name, SRSLTE_COMPLEX_FLOAT_BIN)) {
-    fprintf(stderr, "Error opening file %s\n", input_file_name);
+    ERROR("Error opening file %s\n", input_file_name);
     exit(-1);
   }
   if (srslte_filesink_init(&fsink, output_file_name, SRSLTE_COMPLEX_FLOAT_BIN)) {
-    fprintf(stderr, "Error opening file %s\n", output_file_name);
+    ERROR("Error opening file %s\n", output_file_name);
     exit(-1);
   }
 
@@ -153,7 +148,7 @@ int main(int argc, char **argv) {
   }
 
   if (srslte_cfo_init(&cfocorr, frame_length)) {
-    fprintf(stderr, "Error initiating CFO\n");
+    ERROR("Error initiating CFO\n");
     return -1;
   }
 
@@ -163,20 +158,20 @@ int main(int argc, char **argv) {
    * a) requries more memory but has less latency and is paralellizable.
    */
   for (N_id_2=0;N_id_2<3;N_id_2++) {
-    if (srslte_pss_init(&pss[N_id_2], frame_length)) {
-      fprintf(stderr, "Error initializing PSS object\n");
+    if (srslte_pss_init_fft(&pss[N_id_2], frame_length, symbol_sz)) {
+      ERROR("Error initializing PSS object\n");
       exit(-1);
     }
     if (srslte_pss_set_N_id_2(&pss[N_id_2], N_id_2)) {
-      fprintf(stderr, "Error initializing N_id_2\n");
+      ERROR("Error initializing N_id_2\n");
       exit(-1);
     }
-    if (srslte_sss_init(&sss[N_id_2], 128)) {
-      fprintf(stderr, "Error initializing SSS object\n");
+    if (srslte_sss_init(&sss[N_id_2], symbol_sz)) {
+      ERROR("Error initializing SSS object\n");
       exit(-1);
     }
     if (srslte_sss_set_N_id_2(&sss[N_id_2], N_id_2)) {
-      fprintf(stderr, "Error initializing N_id_2\n");
+      ERROR("Error initializing N_id_2\n");
       exit(-1);
     }
   }
@@ -225,10 +220,15 @@ int main(int argc, char **argv) {
 
         cfo[frame_cnt] = srslte_pss_cfo_compute(&pss[N_id_2], &input[peak_pos[N_id_2]-128]);
         printf("\t%d\t%d\t%d\t%d\t%.3f\t\t%3d\t%d\t%d\t%.3f\n",
-            frame_cnt,N_id_2, srslte_sss_N_id_1(&sss[N_id_2], m0, m1),
-            srslte_sss_subframe(m0, m1), peak_value[N_id_2],
-            peak_pos[N_id_2], m0, m1,
-            cfo[frame_cnt]);
+               frame_cnt,
+               N_id_2,
+               srslte_sss_N_id_1(&sss[N_id_2], m0, m1, m1_value + m0_value),
+               srslte_sss_subframe(m0, m1),
+               peak_value[N_id_2],
+               peak_pos[N_id_2],
+               m0,
+               m1,
+               cfo[frame_cnt]);
       }
     }
     gettimeofday(&tdata[2], NULL);

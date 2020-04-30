@@ -1,19 +1,14 @@
-/**
+/*
+ * Copyright 2013-2019 Software Radio Systems Limited
  *
- * \section COPYRIGHT
+ * This file is part of srsLTE.
  *
- * Copyright 2013-2015 Software Radio Systems Limited
- *
- * \section LICENSE
- *
- * This file is part of the srsUE library.
- *
- * srsUE is free software: you can redistribute it and/or modify
+ * srsLTE is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as
  * published by the Free Software Foundation, either version 3 of
  * the License, or (at your option) any later version.
  *
- * srsUE is distributed in the hope that it will be useful,
+ * srsLTE is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU Affero General Public License for more details.
@@ -24,10 +19,16 @@
  *
  */
 
-
 #include "srslte/common/security.h"
 #include "srslte/common/liblte_security.h"
 #include "srslte/common/snow_3g.h"
+
+#ifdef HAVE_MBEDTLS
+#include "mbedtls/md5.h"
+#endif
+#ifdef HAVE_POLARSSL
+#include "polarssl/md5.h"
+#endif
 
 namespace srslte {
 
@@ -126,7 +127,7 @@ uint8_t security_generate_k_up( uint8_t                       *k_enb,
 
 uint8_t security_128_eia1( uint8_t  *key,
                            uint32_t  count,
-                           uint8_t   bearer,
+                           uint32_t   bearer,
                            uint8_t   direction,
                            uint8_t  *msg,
                            uint32_t  msg_len,
@@ -139,31 +140,38 @@ uint8_t security_128_eia1( uint8_t  *key,
   msg_len_bits = msg_len*8;
   m_ptr = snow3g_f9(key,
                     count,
-                    bearer,
+                    bearer<<27,
                     direction,
                     msg,
                     msg_len_bits);
   for(i=0; i<4; i++) {
     mac[i] = m_ptr[i];
   }
-  return ERROR_NONE;
+  return SRSLTE_SUCCESS;
 }
 
-uint8_t security_128_eia2( uint8_t  *key,
-                           uint32_t  count,
-                           uint8_t   bearer,
-                           uint8_t   direction,
-                           uint8_t  *msg,
-                           uint32_t  msg_len,
-                           uint8_t  *mac)
+uint8_t security_128_eia2(
+    uint8_t* key, uint32_t count, uint32_t bearer, uint8_t direction, uint8_t* msg, uint32_t msg_len, uint8_t* mac)
 {
-  return liblte_security_128_eia2(key,
-                                  count,
-                                  bearer,
-                                  direction,
-                                  msg,
-                                  msg_len,
-                                  mac);
+  return liblte_security_128_eia2(key, count, bearer, direction, msg, msg_len, mac);
+}
+
+uint8_t security_128_eia3(
+    uint8_t* key, uint32_t count, uint32_t bearer, uint8_t direction, uint8_t* msg, uint32_t msg_len, uint8_t* mac)
+{
+  return liblte_security_128_eia3(key, count, bearer, direction, msg, msg_len * 8, mac);
+}
+
+uint8_t security_md5(const uint8_t* input, size_t len, uint8_t* output)
+{
+  memset(output, 0x00, 16);
+#ifdef HAVE_MBEDTLS
+  mbedtls_md5(input, len, output);
+#endif // HAVE_MBEDTLS
+#ifdef HAVE_POLARSSL
+  md5(input, len, output);
+#endif
+  return SRSLTE_SUCCESS;
 }
 
 /******************************************************************************
@@ -188,27 +196,27 @@ uint8_t security_128_eea1(uint8_t  *key,
 
 }
 
+uint8_t security_128_eea2(
+    uint8_t* key, uint32_t count, uint8_t bearer, uint8_t direction, uint8_t* msg, uint32_t msg_len, uint8_t* msg_out)
+{
 
-uint8_t security_128_eea2(uint8_t  *key,
-                           uint32_t count,
-                           uint8_t  bearer,
-                           uint8_t direction,
-                           uint8_t *msg,
-                           uint32_t msg_len,
-                           uint8_t *msg_out){
+  return liblte_security_encryption_eea2(key, count, bearer, direction, msg, msg_len * 8, msg_out);
+}
 
-    return liblte_security_encryption_eea2(key,
-                                           count,
-                                           bearer,
-                                           direction,
-                                           msg,
-                                           msg_len * 8,
-                                           msg_out);
+uint8_t security_128_eea3(
+    uint8_t* key, uint32_t count, uint8_t bearer, uint8_t direction, uint8_t* msg, uint32_t msg_len, uint8_t* msg_out)
+{
+
+  return liblte_security_encryption_eea3(key, count, bearer, direction, msg, msg_len * 8, msg_out);
 }
 
 /******************************************************************************
  * Authentication
  *****************************************************************************/
+uint8_t compute_opc(uint8_t* k, uint8_t* op, uint8_t* opc)
+{
+  return liblte_compute_opc(k, op, opc);
+}
 
 uint8_t security_milenage_f1( uint8_t *k,
                               uint8_t *op,
@@ -268,5 +276,4 @@ uint8_t security_milenage_f5_star( uint8_t *k,
                                           ak);
 }
 
-
-} // namespace srsue
+} // namespace srslte

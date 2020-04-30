@@ -1,19 +1,14 @@
-/**
+/*
+ * Copyright 2013-2019 Software Radio Systems Limited
  *
- * \section COPYRIGHT
+ * This file is part of srsLTE.
  *
- * Copyright 2013-2015 Software Radio Systems Limited
- *
- * \section LICENSE
- *
- * This file is part of the srsUE library.
- *
- * srsUE is free software: you can redistribute it and/or modify
+ * srsLTE is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as
  * published by the Free Software Foundation, either version 3 of
  * the License, or (at your option) any later version.
  *
- * srsUE is distributed in the hope that it will be useful,
+ * srsLTE is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU Affero General Public License for more details.
@@ -53,8 +48,9 @@ bool threads_new_rt_cpu(pthread_t *thread, void *(*start_routine) (void*), void 
   cpu_set_t cpuset;
   bool attr_enable = false;
 
+#ifdef PER_THREAD_PRIO
   if (prio_offset >= 0) {
-    param.sched_priority = sched_get_priority_max(SCHED_FIFO) - prio_offset;  
+    param.sched_priority = sched_get_priority_max(SCHED_FIFO) - prio_offset;
     pthread_attr_init(&attr);
     if (pthread_attr_setinheritsched(&attr, PTHREAD_EXPLICIT_SCHED)) {
       perror("pthread_attr_setinheritsched");
@@ -64,7 +60,7 @@ bool threads_new_rt_cpu(pthread_t *thread, void *(*start_routine) (void*), void 
     }
     if (pthread_attr_setschedparam(&attr, &param)) {
       perror("pthread_attr_setschedparam");
-      fprintf(stderr, "Error not enough privileges to set Scheduling priority\n");
+      ERROR("Error not enough privileges to set Scheduling priority\n");
     }
     attr_enable = true;
   } else if (prio_offset == -1) {
@@ -78,10 +74,29 @@ bool threads_new_rt_cpu(pthread_t *thread, void *(*start_routine) (void*), void 
     }
     if (pthread_attr_setschedparam(&attr, &param)) {
       perror("pthread_attr_setschedparam");
-      fprintf(stderr, "Error not enough privileges to set Scheduling priority\n");
+      ERROR("Error not enough privileges to set Scheduling priority\n");
     }
     attr_enable = true;
   } else if (prio_offset == -2) {
+#else
+  // All threads have normal priority except prio_offset=0,1,2,3,4
+  if (prio_offset >= 0 && prio_offset < 5) {
+    param.sched_priority = 50-prio_offset;
+    pthread_attr_init(&attr);
+    if (pthread_attr_setinheritsched(&attr, PTHREAD_EXPLICIT_SCHED)) {
+      perror("pthread_attr_setinheritsched");
+    }
+    if (pthread_attr_setschedpolicy(&attr, SCHED_FIFO)) {
+      perror("pthread_attr_setschedpolicy");
+    }
+    if (pthread_attr_setschedparam(&attr, &param)) {
+      perror("pthread_attr_setschedparam");
+      fprintf(stderr, "Error not enough privileges to set Scheduling priority\n");
+    }
+    attr_enable = true;
+
+  } else {
+#endif
     param.sched_priority = 0;
     pthread_attr_init(&attr);
     if (pthread_attr_setinheritsched(&attr, PTHREAD_EXPLICIT_SCHED)) {

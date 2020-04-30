@@ -1,12 +1,7 @@
-/**
+/*
+ * Copyright 2013-2019 Software Radio Systems Limited
  *
- * \section COPYRIGHT
- *
- * Copyright 2013-2015 Software Radio Systems Limited
- *
- * \section LICENSE
- *
- * This file is part of the srsLTE library.
+ * This file is part of srsLTE.
  *
  * srsLTE is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as
@@ -40,7 +35,7 @@ uint32_t long_cb = 0;
 
 void usage(char *prog) {
   printf("Usage: %s\n", prog);
-  printf("\t-l long_cb [Default check all]\n", long_cb);
+  printf("\t-l long_cb [Default %u]\n", long_cb);
 }
 
 void parse_args(int argc, char **argv) {
@@ -96,8 +91,16 @@ int main(int argc, char **argv) {
       }
     }
 
+    /* Create CRC for Transport Block, it is not currently used but it is required */
+    srslte_crc_t crc_tb;
+    bzero(&crc_tb, sizeof(crc_tb));
+    if (srslte_crc_init(&crc_tb, SRSLTE_LTE_CRC24A, 24)) {
+      printf("error initialising CRC\n");
+      exit(-1);
+    }
+
     srslte_tcod_encode(&tcod, input_bits, output_bits, long_cb);
-    srslte_tcod_encode_lut(&tcod, input_bytes, parity, len);
+    srslte_tcod_encode_lut(&tcod, &crc_tb, NULL, input_bytes, parity, len, false);
 
     srslte_bit_unpack_vector(parity, parity_bits, 2*(long_cb+4));
     

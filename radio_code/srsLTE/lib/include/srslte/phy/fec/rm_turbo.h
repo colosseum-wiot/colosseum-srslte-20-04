@@ -1,12 +1,7 @@
-/**
+/*
+ * Copyright 2013-2019 Software Radio Systems Limited
  *
- * \section COPYRIGHT
- *
- * Copyright 2013-2015 Software Radio Systems Limited
- *
- * \section LICENSE
- *
- * This file is part of the srsLTE library.
+ * This file is part of srsLTE.
  *
  * srsLTE is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as
@@ -36,6 +31,7 @@
 #define SRSLTE_RM_TURBO_H
 
 #include "srslte/config.h"
+#include "srslte/phy/fec/turbodecoder.h"
 
 #ifndef SRSLTE_RX_NULL
 #define SRSLTE_RX_NULL 10000
@@ -46,7 +42,6 @@
 #endif
 
 #include "srslte/config.h"
-
 
 SRSLTE_API int srslte_rm_turbo_tx(uint8_t *w_buff,
                                   uint32_t buff_len, 
@@ -82,7 +77,19 @@ SRSLTE_API int srslte_rm_turbo_rx_lut(int16_t *input,
                                       int16_t *output, 
                                       uint32_t in_len, 
                                       uint32_t cb_idx, 
-                                      uint32_t rv_idx); 
+                                      uint32_t rv_idx);
 
+SRSLTE_API int srslte_rm_turbo_rx_lut_(int16_t *input,
+                                       int16_t *output,
+                                       uint32_t in_len,
+                                       uint32_t cb_idx,
+                                       uint32_t rv_idx,
+                                       bool enable_input_tdec);
+
+SRSLTE_API int srslte_rm_turbo_rx_lut_8bit(int8_t *input,
+                                           int8_t *output,
+                                           uint32_t in_len,
+                                           uint32_t cb_idx,
+                                           uint32_t rv_idx);
 
 #endif // SRSLTE_RM_TURBO_H

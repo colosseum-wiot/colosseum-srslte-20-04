@@ -1,12 +1,7 @@
-/**
+/*
+ * Copyright 2013-2019 Software Radio Systems Limited
  *
- * \section COPYRIGHT
- *
- * Copyright 2013-2015 Software Radio Systems Limited
- *
- * \section LICENSE
- *
- * This file is part of the srsLTE library.
+ * This file is part of srsLTE.
  *
  * srsLTE is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as
@@ -47,8 +42,9 @@ typedef struct SRSLTE_API {
 SRSLTE_API int srslte_tc_interl_LTE_gen(srslte_tc_interl_t *h, 
                                         uint32_t long_cb);
 
-SRSLTE_API int srslte_tc_interl_UMTS_gen(srslte_tc_interl_t *h, 
-                                         uint32_t long_cb);
+SRSLTE_API int srslte_tc_interl_LTE_gen_interl(srslte_tc_interl_t *h,
+                                               uint32_t long_cb,
+                                               uint32_t interl_win);
 
 SRSLTE_API int srslte_tc_interl_init(srslte_tc_interl_t *h, 
                                      uint32_t max_long_cb);

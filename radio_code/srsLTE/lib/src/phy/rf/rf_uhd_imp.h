@@ -1,12 +1,7 @@
-/**
+/*
+ * Copyright 2013-2019 Software Radio Systems Limited
  *
- * \section COPYRIGHT
- *
- * Copyright 2013-2015 Software Radio Systems Limited
- *
- * \section LICENSE
- *
- * This file is part of the srsLTE library.
+ * This file is part of srsLTE.
  *
  * srsLTE is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as
@@ -32,6 +27,7 @@
 
 #define DEVNAME_B200 "uhd_b200"
 #define DEVNAME_X300 "uhd_x300"
+#define DEVNAME_N300 "uhd_n300"
 #define DEVNAME_E3X0 "uhd_e3x0"
 
 
@@ -46,10 +42,6 @@ SRSLTE_API char* rf_uhd_devname(void *h);
 
 SRSLTE_API int rf_uhd_close(void *h);
 
-SRSLTE_API void rf_uhd_set_tx_cal(void *h, srslte_rf_cal_t *cal);
-
-SRSLTE_API void rf_uhd_set_rx_cal(void *h, srslte_rf_cal_t *cal);
-
 SRSLTE_API int rf_uhd_start_rx_stream(void *h,
                                       bool now);
 
@@ -62,17 +54,9 @@ SRSLTE_API void rf_uhd_flush_buffer(void *h);
 
 SRSLTE_API bool rf_uhd_has_rssi(void *h);
 
-SRSLTE_API float rf_uhd_get_rssi(void *h); 
+SRSLTE_API float rf_uhd_get_rssi(void* h);
 
-SRSLTE_API bool rf_uhd_rx_wait_lo_locked(void *h);
-
-SRSLTE_API void rf_uhd_set_master_clock_rate(void *h, 
-                                          double rate); 
-
-SRSLTE_API bool rf_uhd_is_master_clock_dynamic(void *h); 
-
-SRSLTE_API double rf_uhd_set_rx_srate(void *h, 
-                                   double freq);
+SRSLTE_API double rf_uhd_set_rx_srate(void* h, double freq);
 
 SRSLTE_API double rf_uhd_set_rx_gain(void *h, 
                                   double gain);
@@ -81,12 +65,13 @@ SRSLTE_API double rf_uhd_get_rx_gain(void *h);
 
 SRSLTE_API double rf_uhd_get_tx_gain(void *h);
 
+SRSLTE_API srslte_rf_info_t *rf_uhd_get_info(void *h);
+
 SRSLTE_API void rf_uhd_suppress_stdout(void *h);
 
 SRSLTE_API void rf_uhd_register_error_handler(void *h, srslte_rf_error_handler_t error_handler);
 
-SRSLTE_API double rf_uhd_set_rx_freq(void *h, 
-                                  double freq);
+SRSLTE_API double rf_uhd_set_rx_freq(void* h, uint32_t ch, double freq);
 
 SRSLTE_API int rf_uhd_recv_with_time(void *h,
                                   void *data,
@@ -108,12 +93,11 @@ SRSLTE_API double rf_uhd_set_tx_srate(void *h,
 SRSLTE_API double rf_uhd_set_tx_gain(void *h, 
                                    double gain);
 
-SRSLTE_API double rf_uhd_set_tx_freq(void *h,
-                                   double freq);
+SRSLTE_API double rf_uhd_set_tx_freq(void* h, uint32_t ch, double freq);
 
-SRSLTE_API void rf_uhd_get_time(void *h, 
-                              time_t *secs, 
-                              double *frac_secs); 
+SRSLTE_API void rf_uhd_get_time(void* h, time_t* secs, double* frac_secs);
+
+SRSLTE_API void rf_uhd_sync_pps(void* h);
 
 SRSLTE_API int  rf_uhd_send_timed(void *h, 
                                   void *data, 

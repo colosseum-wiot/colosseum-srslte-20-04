@@ -1,12 +1,7 @@
-/**
+/*
+ * Copyright 2013-2019 Software Radio Systems Limited
  *
- * \section COPYRIGHT
- *
- * Copyright 2013-2015 Software Radio Systems Limited
- *
- * \section LICENSE
- *
- * This file is part of the srsLTE library.
+ * This file is part of srsLTE.
  *
  * srsLTE is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as
@@ -69,6 +64,17 @@ SRSLTE_API void srslte_bit_copy(uint8_t *dst,
                                 uint8_t *src, 
                                 uint32_t src_offset, 
                                 uint32_t nof_bits);
+
+SRSLTE_API void srslte_bit_interleave_i(uint8_t *input,
+                                        uint8_t *output,
+                                        uint32_t *interleaver,
+                                        uint32_t nof_bits);
+
+SRSLTE_API void srslte_bit_interleave_i_w_offset(uint8_t *input,
+                                                 uint8_t *output,
+                                                 uint32_t *interleaver,
+                                                 uint32_t nof_bits,
+                                                 uint32_t w_offset);
 
 SRSLTE_API void srslte_bit_interleave_w_offset(uint8_t *input, 
                                                uint8_t *output, 

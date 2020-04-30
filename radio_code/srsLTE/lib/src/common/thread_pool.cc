@@ -1,19 +1,14 @@
-/**
+/*
+ * Copyright 2013-2019 Software Radio Systems Limited
  *
- * \section COPYRIGHT
+ * This file is part of srsLTE.
  *
- * Copyright 2013-2015 Software Radio Systems Limited
- *
- * \section LICENSE
- *
- * This file is part of the srsUE library.
- *
- * srsUE is free software: you can redistribute it and/or modify
+ * srsLTE is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as
  * published by the Free Software Foundation, either version 3 of
  * the License, or (at your option) any later version.
  *
- * srsUE is distributed in the hope that it will be useful,
+ * srsLTE is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU Affero General Public License for more details.
@@ -24,10 +19,10 @@
  *
  */
 
-
-#include <assert.h>
-#include <stdio.h>
 #include "srslte/common/thread_pool.h"
+#include <assert.h>
+#include <chrono>
+#include <stdio.h>
 
 #define DEBUG 0
 #define debug_thread(fmt, ...) do { if(DEBUG) printf(fmt, __VA_ARGS__); } while(0)
@@ -35,12 +30,14 @@
 #define USE_QUEUE
 
 namespace srslte {
- 
-  
+
+thread_pool::worker::worker() : my_id(0), running(false), my_parent(NULL), thread("THREAD_POOL_WORKER") {}
+
 void thread_pool::worker::setup(uint32_t id, thread_pool *parent, uint32_t prio, uint32_t mask)
 {
   my_id = id; 
   my_parent = parent;
+
   if(mask == 255)
   {
     start(prio);
@@ -54,6 +51,7 @@ void thread_pool::worker::setup(uint32_t id, thread_pool *parent, uint32_t prio,
 
 void thread_pool::worker::run_thread()
 {
+  set_name(std::string("WORKER") + std::to_string(my_id));
   running = true;   
   while(running)  {
     wait_to_start();
@@ -81,7 +79,6 @@ thread_pool::thread_pool(uint32_t max_workers_)  :
                                   status(max_workers_),
                                   cvar(max_workers_),
                                   mutex(max_workers_)
-                                  
 {
   max_workers = max_workers_;
   for (uint32_t i=0;i<max_workers;i++) {
@@ -284,6 +281,128 @@ uint32_t thread_pool::get_nof_workers()
   return nof_workers;
 }
 
+/**************************************************************************
+ *  task_thread_pool - uses a queue to enqueue callables, that start
+ *  once a worker is available
+ *************************************************************************/
+
+task_thread_pool::task_thread_pool(uint32_t nof_workers) : running(false)
+{
+  workers.reserve(nof_workers);
+  for (uint32_t i = 0; i < nof_workers; ++i) {
+    workers.emplace_back(this, i);
+  }
 }
 
+task_thread_pool::~task_thread_pool()
+{
+  stop();
+}
 
+void task_thread_pool::start(int32_t prio, uint32_t mask)
+{
+  std::lock_guard<std::mutex> lock(queue_mutex);
+  running = true;
+  for (worker_t& w : workers) {
+    w.setup(prio, mask);
+  }
+}
+
+void task_thread_pool::stop()
+{
+  std::unique_lock<std::mutex> lock(queue_mutex);
+  if (running) {
+    running              = false;
+    bool workers_running = false;
+    for (worker_t& w : workers) {
+      if (w.is_running()) {
+        workers_running = true;
+        break;
+      }
+    }
+    lock.unlock();
+    if (workers_running) {
+      cv_empty.notify_all();
+    }
+    for (worker_t& w : workers) {
+      w.stop();
+    }
+  }
+}
+
+void task_thread_pool::push_task(const task_t& task)
+{
+  {
+    std::lock_guard<std::mutex> lock(queue_mutex);
+    pending_tasks.push(task);
+  }
+  cv_empty.notify_one();
+}
+
+void task_thread_pool::push_task(task_t&& task)
+{
+  {
+    std::lock_guard<std::mutex> lock(queue_mutex);
+    pending_tasks.push(std::move(task));
+  }
+  cv_empty.notify_one();
+}
+
+uint32_t task_thread_pool::nof_pending_tasks()
+{
+  std::lock_guard<std::mutex> lock(queue_mutex);
+  return pending_tasks.size();
+}
+
+task_thread_pool::worker_t::worker_t(srslte::task_thread_pool* parent_, uint32_t my_id) :
+  parent(parent_),
+  thread(std::string("TASKWORKER") + std::to_string(my_id)),
+  id_(my_id)
+{
+}
+
+void task_thread_pool::worker_t::stop()
+{
+  wait_thread_finish();
+}
+
+void task_thread_pool::worker_t::setup(int32_t prio, uint32_t mask)
+{
+  running = true;
+  if (mask == 255) {
+    start(prio);
+  } else {
+    start_cpu_mask(prio, mask);
+  }
+}
+
+bool task_thread_pool::worker_t::wait_task(task_t* task)
+{
+  std::unique_lock<std::mutex> lock(parent->queue_mutex);
+  while (parent->running and parent->pending_tasks.empty()) {
+    parent->cv_empty.wait(lock);
+  }
+  if (not parent->running) {
+    return false;
+  }
+  if (task) {
+    *task = std::move(parent->pending_tasks.front());
+  }
+  parent->pending_tasks.pop();
+  return true;
+}
+
+void task_thread_pool::worker_t::run_thread()
+{
+  // main loop
+  task_t task;
+  while (wait_task(&task)) {
+    task(id());
+  }
+
+  // on exit, notify pool class
+  std::unique_lock<std::mutex> lock(parent->queue_mutex);
+  running = false;
+}
+
+} // namespace srslte

@@ -1,19 +1,14 @@
-/**
+/*
+ * Copyright 2013-2019 Software Radio Systems Limited
  *
- * \section COPYRIGHT
+ * This file is part of srsLTE.
  *
- * Copyright 2013-2015 Software Radio Systems Limited
- *
- * \section LICENSE
- *
- * This file is part of the srsUE library.
- *
- * srsUE is free software: you can redistribute it and/or modify
+ * srsLTE is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as
  * published by the Free Software Foundation, either version 3 of
  * the License, or (at your option) any later version.
  *
- * srsUE is distributed in the hope that it will be useful,
+ * srsLTE is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU Affero General Public License for more details.
@@ -34,10 +29,15 @@
 #ifndef SRSLTE_THREAD_POOL_H
 #define SRSLTE_THREAD_POOL_H
 
+#include <condition_variable>
+#include <functional>
+#include <memory>
+#include <mutex>
+#include <queue>
+#include <stack>
 #include <stdint.h>
 #include <string>
 #include <vector>
-#include <stack>
 
 #include "srslte/common/threads.h"
 
@@ -50,6 +50,7 @@ public:
   class worker : public thread
   {
   public:
+    worker();
     void setup(uint32_t id, thread_pool *parent, uint32_t prio=0, uint32_t mask = 255);
     void stop();
     uint32_t get_id();
@@ -98,8 +99,50 @@ private:
   std::vector<worker_status> status;
   std::vector<pthread_cond_t> cvar;
   std::vector<pthread_mutex_t> mutex;
-  std::stack<worker*> available_workers;
+  std::stack<worker*>          available_workers;
 };
-}
-  
+
+class task_thread_pool
+{
+  using task_t = std::function<void(uint32_t worker_id)>;
+
+public:
+  explicit task_thread_pool(uint32_t nof_workers);
+  ~task_thread_pool();
+  void start(int32_t prio = -1, uint32_t mask = 255);
+  void stop();
+
+  void     push_task(const task_t& task);
+  void     push_task(task_t&& task);
+  uint32_t nof_pending_tasks();
+
+private:
+  class worker_t : public thread
+  {
+  public:
+    explicit worker_t(task_thread_pool* parent_, uint32_t id);
+    void     stop();
+    void     setup(int32_t prio, uint32_t mask);
+    bool     is_running() const { return running; }
+    uint32_t id() const { return id_; }
+
+    void run_thread() override;
+
+  private:
+    bool wait_task(task_t* task);
+
+    task_thread_pool* parent  = nullptr;
+    uint32_t          id_     = 0;
+    bool              running = false;
+  };
+
+  std::queue<task_t>      pending_tasks;
+  std::vector<worker_t>   workers;
+  std::mutex              queue_mutex;
+  std::condition_variable cv_empty;
+  bool                    running;
+};
+
+} // namespace srslte
+
 #endif // SRSLTE_THREAD_POOL_H

@@ -1,19 +1,14 @@
-/**
+/*
+ * Copyright 2013-2019 Software Radio Systems Limited
  *
- * \section COPYRIGHT
+ * This file is part of srsLTE.
  *
- * Copyright 2013-2015 Software Radio Systems Limited
- *
- * \section LICENSE
- *
- * This file is part of the srsUE library.
- *
- * srsUE is free software: you can redistribute it and/or modify
+ * srsLTE is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as
  * published by the Free Software Foundation, either version 3 of
  * the License, or (at your option) any later version.
  *
- * srsUE is distributed in the hope that it will be useful,
+ * srsLTE is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU Affero General Public License for more details.
@@ -35,6 +30,7 @@
 #ifndef SRSLTE_LOG_H
 #define SRSLTE_LOG_H
 
+#include <algorithm>
 #include <stdint.h>
 #include <string>
 
@@ -69,9 +65,7 @@ public:
     tti = 0;
     level = LOG_LEVEL_NONE;
     hex_limit = 0;
-    show_layer_en = true;
     add_string_en = false;
-    level_text_short = true;
   }
 
   log(std::string service_name_) {
@@ -79,9 +73,7 @@ public:
     tti = 0;
     level = LOG_LEVEL_NONE;
     hex_limit = 0;
-    show_layer_en = true;
     add_string_en = false;
-    level_text_short = true;
   }
 
   virtual ~log() {};
@@ -104,6 +96,27 @@ public:
   void set_level(LOG_LEVEL_ENUM l) {
     level = l;
   }
+
+  void set_level(std::string l) { set_level(get_level_from_string(l)); }
+
+  srslte::LOG_LEVEL_ENUM get_level_from_string(std::string l)
+  {
+    std::transform(l.begin(), l.end(), l.begin(), ::toupper);
+    if ("NONE" == l) {
+      return srslte::LOG_LEVEL_NONE;
+    } else if ("ERROR" == l) {
+      return srslte::LOG_LEVEL_ERROR;
+    } else if ("WARNING" == l) {
+      return srslte::LOG_LEVEL_WARNING;
+    } else if ("INFO" == l) {
+      return srslte::LOG_LEVEL_INFO;
+    } else if ("DEBUG" == l) {
+      return srslte::LOG_LEVEL_DEBUG;
+    } else {
+      return srslte::LOG_LEVEL_NONE;
+    }
+  }
+
   LOG_LEVEL_ENUM get_level() {
     return level;
   }
@@ -114,12 +127,6 @@ public:
   int get_hex_limit() {
     return hex_limit;
   }
-  void set_log_level_short(bool enable) {
-    level_text_short = enable;
-  }
-  void show_layer(bool enable) {
-    show_layer_en = enable;
-  }
 
   // Pure virtual methods for logging
   virtual void console(const char * message, ...) __attribute__ ((format (printf, 2, 3))) = 0;
@@ -127,15 +134,16 @@ public:
   virtual void warning(const char * message, ...) __attribute__ ((format (printf, 2, 3))) = 0;
   virtual void info(const char * message, ...)    __attribute__ ((format (printf, 2, 3))) = 0;
   virtual void debug(const char * message, ...)   __attribute__ ((format (printf, 2, 3))) = 0;
+  virtual void debug_long(const char* message, ...) __attribute__((format(printf, 2, 3))) = 0;
 
   // Same with hex dump
-  virtual void error_hex(const uint8_t *hex, int size, const char *, ...)   __attribute__((format (printf, 4, 5)))
+  virtual void error_hex(const uint8_t *, int, const char *, ...)   __attribute__((format (printf, 4, 5)))
     {error("error_hex not implemented.\n");}
-  virtual void warning_hex(const uint8_t *hex, int size, const char *, ...) __attribute__((format (printf, 4, 5)))
+  virtual void warning_hex(const uint8_t *, int, const char *, ...) __attribute__((format (printf, 4, 5)))
     {error("warning_hex not implemented.\n");}
-  virtual void info_hex(const uint8_t *hex, int size, const char *, ...)    __attribute__((format (printf, 4, 5)))
+  virtual void info_hex(const uint8_t *, int, const char *, ...)    __attribute__((format (printf, 4, 5)))
     {error("info_hex not implemented.\n");}
-  virtual void debug_hex(const uint8_t *hex, int size, const char *, ...)   __attribute__((format (printf, 4, 5)))
+  virtual void debug_hex(const uint8_t *, int, const char *, ...)   __attribute__((format (printf, 4, 5)))
     {error("debug_hex not implemented.\n");}
 
 protected:
@@ -145,8 +153,6 @@ protected:
   int             hex_limit;
   std::string     service_name;
 
-  bool        show_layer_en;
-  bool        level_text_short;
   bool        add_string_en;
   std::string add_string_val;
 };

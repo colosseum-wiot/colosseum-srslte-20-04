@@ -1,12 +1,7 @@
-/**
+/*
+ * Copyright 2013-2019 Software Radio Systems Limited
  *
- * \section COPYRIGHT
- *
- * Copyright 2013-2015 Software Radio Systems Limited
- *
- * \section LICENSE
- *
- * This file is part of the srsLTE library.
+ * This file is part of srsLTE.
  *
  * srsLTE is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as
@@ -24,17 +19,21 @@
  *
  */
 
-#include <strings.h>
-#include <stdlib.h>
+#include "srslte/srslte.h"
 #include <math.h>
-#include <srslte/srslte.h>
+#include <stdlib.h>
+#include <strings.h>
 
 #include "srslte/phy/utils/cexptab.h"
 #include "srslte/phy/sync/cfo.h"
 #include "srslte/phy/utils/vector.h"
 #include "srslte/phy/utils/debug.h"
 
+/* Set next macro to 1 for using table generated CFO compensation */
+#define SRSLTE_CFO_USE_EXP_TABLE 0
+
 int srslte_cfo_init(srslte_cfo_t *h, uint32_t nsamples) {
+#if SRSLTE_CFO_USE_EXP_TABLE
   int ret = SRSLTE_ERROR;
   bzero(h, sizeof(srslte_cfo_t));
 
@@ -57,13 +56,19 @@ clean:
     srslte_cfo_free(h);
   }
   return ret;
+#else /* SRSLTE_CFO_USE_EXP_TABLE */
+  h->nsamples = nsamples;
+  return SRSLTE_SUCCESS;
+#endif /* SRSLTE_CFO_USE_EXP_TABLE */
 }
 
 void srslte_cfo_free(srslte_cfo_t *h) {
+#if SRSLTE_CFO_USE_EXP_TABLE
   srslte_cexptab_free(&h->tab);
   if (h->cur_cexp) {
     free(h->cur_cexp);
   }
+#endif /* SRSLTE_CFO_USE_EXP_TABLE */
   bzero(h, sizeof(srslte_cfo_t));
 }
 
@@ -72,22 +77,43 @@ void srslte_cfo_set_tol(srslte_cfo_t *h, float tol) {
 }
 
 int srslte_cfo_resize(srslte_cfo_t *h, uint32_t samples) {
+#if SRSLTE_CFO_USE_EXP_TABLE
   if (samples <= h->max_samples) {
     srslte_cexptab_gen(&h->tab, h->cur_cexp, h->last_freq, samples);
     h->nsamples = samples;
   } else {
-    fprintf(stderr, "Error in cfo_resize(): nof_samples must be lower than initialized\n");
+    ERROR("Error in cfo_resize(): nof_samples must be lower than initialized\n");
     return SRSLTE_ERROR;
   }
-
+#endif /* SRSLTE_CFO_USE_EXP_TABLE */
   return SRSLTE_SUCCESS;
 }
 
 void srslte_cfo_correct(srslte_cfo_t *h, const cf_t *input, cf_t *output, float freq) {
+#if SRSLTE_CFO_USE_EXP_TABLE
   if (fabs(h->last_freq - freq) > h->tol) {
     h->last_freq = freq;
     srslte_cexptab_gen(&h->tab, h->cur_cexp, h->last_freq, h->nsamples);
     DEBUG("CFO generating new table for frequency %.4fe-6\n", freq*1e6);
   }
   srslte_vec_prod_ccc(h->cur_cexp, input, output, h->nsamples);
+#else /* SRSLTE_CFO_USE_EXP_TABLE */
+  srslte_vec_apply_cfo(input, freq, output, h->nsamples);
+#endif /* SRSLTE_CFO_USE_EXP_TABLE */
+}
+
+/* CFO correction which allows to specify the offset within the correction
+ * table to allow phase-continuity across multi-subframe transmissions (NB-IoT)
+ * Note that when correction table needs to be regenerated, the regeneration
+ * takes place for the maximum number of samples
+ */
+void srslte_cfo_correct_offset(
+    srslte_cfo_t* h, const cf_t* input, cf_t* output, float freq, int cexp_offset, int nsamples)
+{
+  if (fabs(h->last_freq - freq) > h->tol) {
+    h->last_freq = freq;
+    srslte_cexptab_gen(&h->tab, h->cur_cexp, h->last_freq, h->nsamples);
+    DEBUG("CFO generating new table for frequency %.4fe-6\n", freq * 1e6);
+  }
+  srslte_vec_prod_ccc(&h->cur_cexp[cexp_offset], input, output, nsamples);
 }

@@ -1,12 +1,7 @@
-/**
+/*
+ * Copyright 2013-2019 Software Radio Systems Limited
  *
- * \section COPYRIGHT
- *
- * Copyright 2013-2015 Software Radio Systems Limited
- *
- * \section LICENSE
- *
- * This file is part of the srsLTE library.
+ * This file is part of srsLTE.
  *
  * srsLTE is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as
@@ -66,10 +61,14 @@ SRSLTE_API int srslte_conv_fft_cc_replan(srslte_conv_fft_cc_t *q,
 
 SRSLTE_API void srslte_conv_fft_cc_free(srslte_conv_fft_cc_t *q);
 
-SRSLTE_API uint32_t srslte_conv_fft_cc_run(srslte_conv_fft_cc_t *q,
-                                           const cf_t *input,
-                                           const cf_t *filter,
-                                           cf_t *output);
+SRSLTE_API uint32_t srslte_corr_fft_cc_run(srslte_conv_fft_cc_t* q, cf_t* input, cf_t* filter, cf_t* output);
+
+SRSLTE_API uint32_t srslte_corr_fft_cc_run_opt(srslte_conv_fft_cc_t* q, cf_t* input, cf_t* filter, cf_t* output);
+
+SRSLTE_API uint32_t srslte_conv_fft_cc_run(srslte_conv_fft_cc_t* q,
+                                           const cf_t*           input,
+                                           const cf_t*           filter,
+                                           cf_t*                 output);
 
 SRSLTE_API uint32_t srslte_conv_fft_cc_run_opt(srslte_conv_fft_cc_t *q,
                                                const cf_t *input,

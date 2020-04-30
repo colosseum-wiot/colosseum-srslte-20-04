@@ -1,12 +1,7 @@
-/**
+/*
+ * Copyright 2013-2019 Software Radio Systems Limited
  *
- * \section COPYRIGHT
- *
- * Copyright 2013-2015 Software Radio Systems Limited
- *
- * \section LICENSE
- *
- * This file is part of the srsLTE library.
+ * This file is part of srsLTE.
  *
  * srsLTE is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as
@@ -57,5 +52,7 @@ SRSLTE_API void srslte_cexptab_gen(srslte_cexptab_t *nco,
 SRSLTE_API void srslte_cexptab_gen_direct(cf_t *x, 
                                           float freq, 
                                           uint32_t len);
+
+SRSLTE_API void srslte_cexptab_gen_sf(cf_t* x, float freq, uint32_t fft_size);
 
 #endif // SRSLTE_CEXPTAB_H

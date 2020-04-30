@@ -1,12 +1,7 @@
-/**
+/*
+ * Copyright 2013-2019 Software Radio Systems Limited
  *
- * \section COPYRIGHT
- *
- * Copyright 2013-2015 Software Radio Systems Limited
- *
- * \section LICENSE
- *
- * This file is part of the srsLTE library.
+ * This file is part of srsLTE.
  *
  * srsLTE is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as
@@ -24,12 +19,12 @@
  *
  */
 
-#include <string.h>
-#include <strings.h>
-#include <stdlib.h>
+#include "srslte/srslte.h"
 #include <complex.h>
 #include <math.h>
-#include <srslte/srslte.h>
+#include <stdlib.h>
+#include <string.h>
+#include <strings.h>
 
 #include "srslte/phy/common/phy_common.h"
 #include "srslte/phy/dft/dft.h"
@@ -60,7 +55,7 @@ int srslte_ofdm_init_mbsfn_(srslte_ofdm_t *q, srslte_cp_t cp, cf_t *in_buffer, c
   q->out_buffer= out_buffer;
 
   if (srslte_dft_plan_c(&q->fft_plan, symbol_sz, dir)) {
-    fprintf(stderr, "Error: Creating DFT plan\n");
+    ERROR("Error: Creating DFT plan\n");
     return -1;
   }
 
@@ -96,7 +91,7 @@ int srslte_ofdm_init_mbsfn_(srslte_ofdm_t *q, srslte_cp_t cp, cf_t *in_buffer, c
                                  in_buffer + cp1 + q->slot_sz * slot,
                                  q->tmp + q->nof_symbols * q->symbol_sz * slot,
                                  1, 1, SRSLTE_CP_NSYMB(cp), symbol_sz + cp2, symbol_sz)) {
-        fprintf(stderr, "Error: Creating DFT plan (1)\n");
+        ERROR("Error: Creating DFT plan (1)\n");
         return -1;
       }
     } else {
@@ -104,7 +99,7 @@ int srslte_ofdm_init_mbsfn_(srslte_ofdm_t *q, srslte_cp_t cp, cf_t *in_buffer, c
                                  q->tmp + q->nof_symbols * q->symbol_sz * slot,
                                  out_buffer + cp1 + q->slot_sz * slot,
                                  1, 1, SRSLTE_CP_NSYMB(cp), symbol_sz, symbol_sz + cp2)) {
-        fprintf(stderr, "Error: Creating DFT plan (1)\n");
+        ERROR("Error: Creating DFT plan (1)\n");
         return -1;
       }
     }
@@ -143,12 +138,13 @@ void srslte_ofdm_set_non_mbsfn_region(srslte_ofdm_t *q, uint8_t non_mbsfn_region
 int srslte_ofdm_replan_(srslte_ofdm_t *q, srslte_cp_t cp, int symbol_sz, int nof_prb) {
 
   if (srslte_dft_replan_c(&q->fft_plan, symbol_sz)) {
-    fprintf(stderr, "Error: Creating DFT plan\n");
+    ERROR("Error: Creating DFT plan\n");
     return -1;
   }
 
   q->symbol_sz = (uint32_t) symbol_sz;
   q->nof_symbols = SRSLTE_CP_NSYMB(cp);
+  q->nof_symbols_mbsfn = SRSLTE_CP_NSYMB(SRSLTE_CP_EXT);
   q->cp = cp;
   q->nof_re = (uint32_t) nof_prb * SRSLTE_NRE;
   q->nof_guards = ((symbol_sz - q->nof_re) / 2);
@@ -189,7 +185,7 @@ int srslte_ofdm_replan_(srslte_ofdm_t *q, srslte_cp_t cp, int symbol_sz, int nof
                                  in_buffer + cp1 + q->slot_sz * slot,
                                  q->tmp + q->nof_symbols * q->symbol_sz * slot,
                                  1, 1, SRSLTE_CP_NSYMB(cp), symbol_sz + cp2, symbol_sz)) {
-        fprintf(stderr, "Error: Creating DFT plan (1)\n");
+        ERROR("Error: Creating DFT plan (1)\n");
         return -1;
       }
     } else {
@@ -197,7 +193,7 @@ int srslte_ofdm_replan_(srslte_ofdm_t *q, srslte_cp_t cp, int symbol_sz, int nof
                                  q->tmp + q->nof_symbols * q->symbol_sz * slot,
                                  out_buffer + cp1 + q->slot_sz * slot,
                                  1, 1, SRSLTE_CP_NSYMB(cp), symbol_sz, symbol_sz + cp2)) {
-        fprintf(stderr, "Error: Creating DFT plan (1)\n");
+        ERROR("Error: Creating DFT plan (1)\n");
         return -1;
       }
     }
@@ -239,21 +235,22 @@ void srslte_ofdm_free_(srslte_ofdm_t *q) {
 int srslte_ofdm_rx_init(srslte_ofdm_t *q, srslte_cp_t cp, cf_t *in_buffer, cf_t *out_buffer, uint32_t max_prb) {
   int symbol_sz = srslte_symbol_sz(max_prb);
   if (symbol_sz < 0) {
-    fprintf(stderr, "Error: Invalid nof_prb=%d\n", max_prb);
+    ERROR("Error: Invalid nof_prb=%d\n", max_prb);
     return -1;
   }
   q->max_prb = max_prb;
   return srslte_ofdm_init_(q, cp, in_buffer, out_buffer, symbol_sz, max_prb, SRSLTE_DFT_FORWARD);
 }
 
-int srslte_ofdm_rx_init_mbsfn(srslte_ofdm_t *q, srslte_cp_t cp, cf_t *in_buffer, cf_t *out_buffer, uint32_t nof_prb)
+int srslte_ofdm_rx_init_mbsfn(srslte_ofdm_t *q, srslte_cp_t cp, cf_t *in_buffer, cf_t *out_buffer, uint32_t max_prb)
 {
-  int symbol_sz = srslte_symbol_sz(nof_prb);
+  int symbol_sz = srslte_symbol_sz(max_prb);
   if (symbol_sz < 0) {
-    fprintf(stderr, "Error: Invalid nof_prb=%d\n", nof_prb);
+    ERROR("Error: Invalid nof_prb=%d\n", max_prb);
     return -1;
   }
-  return srslte_ofdm_init_mbsfn_(q, cp, in_buffer, out_buffer, symbol_sz, nof_prb, SRSLTE_DFT_FORWARD, SRSLTE_SF_MBSFN);
+  q->max_prb = max_prb;
+  return srslte_ofdm_init_mbsfn_(q, cp, in_buffer, out_buffer, symbol_sz, max_prb, SRSLTE_DFT_FORWARD, SRSLTE_SF_MBSFN);
 }
 
 
@@ -263,7 +260,7 @@ int srslte_ofdm_tx_init(srslte_ofdm_t *q, srslte_cp_t cp, cf_t *in_buffer, cf_t 
   
   int symbol_sz = srslte_symbol_sz(max_prb);
   if (symbol_sz < 0) {
-    fprintf(stderr, "Error: Invalid nof_prb=%d\n", max_prb);
+    ERROR("Error: Invalid nof_prb=%d\n", max_prb);
     return -1;
   }
   q->max_prb = max_prb;
@@ -288,11 +285,11 @@ int srslte_ofdm_tx_init_mbsfn(srslte_ofdm_t *q, srslte_cp_t cp, cf_t *in_buffer,
   int ret;
   
   int symbol_sz = srslte_symbol_sz(nof_prb);
-  if (symbol_sz < 0) { 
-    fprintf(stderr, "Error: Invalid nof_prb=%d\n", nof_prb);
+  if (symbol_sz < 0) {
+    ERROR("Error: Invalid nof_prb=%d\n", nof_prb);
     return -1;
   }
-
+  q->max_prb = nof_prb;
   ret = srslte_ofdm_init_mbsfn_(q, cp, in_buffer, out_buffer, symbol_sz, nof_prb, SRSLTE_DFT_BACKWARD, SRSLTE_SF_MBSFN);
   
   if (ret == SRSLTE_SUCCESS) {
@@ -311,13 +308,14 @@ int srslte_ofdm_rx_set_prb(srslte_ofdm_t *q, srslte_cp_t cp, uint32_t nof_prb) {
   if (nof_prb <= q->max_prb) {
     int symbol_sz = srslte_symbol_sz(nof_prb);
     if (symbol_sz < 0) {
-      fprintf(stderr, "Error: Invalid nof_prb=%d\n", nof_prb);
+      ERROR("Error: Invalid nof_prb=%d\n", nof_prb);
       return -1;
     }
     return srslte_ofdm_replan_(q, cp, symbol_sz, nof_prb);
   } else {
-    fprintf(stderr, "OFDM (Rx): Error calling set_prb: nof_prb (%d) must be equal or lower initialized max_prb (%d)\n",
-            nof_prb, q->max_prb);
+    ERROR("OFDM (Rx): Error calling set_prb: nof_prb (%d) must be equal or lower initialized max_prb (%d)\n",
+          nof_prb,
+          q->max_prb);
     return -1;
   }
 }
@@ -329,7 +327,7 @@ int srslte_ofdm_tx_set_prb(srslte_ofdm_t *q, srslte_cp_t cp, uint32_t nof_prb) {
   if (nof_prb <= q->max_prb) {
     int symbol_sz = srslte_symbol_sz(nof_prb);
     if (symbol_sz < 0) {
-      fprintf(stderr, "Error: Invalid nof_prb=%d\n", nof_prb);
+      ERROR("Error: Invalid nof_prb=%d\n", nof_prb);
       return -1;
     }
 
@@ -344,8 +342,9 @@ int srslte_ofdm_tx_set_prb(srslte_ofdm_t *q, srslte_cp_t cp, uint32_t nof_prb) {
     }
     return ret;
   } else {
-    fprintf(stderr, "OFDM (Tx): Error calling set_prb: nof_prb (%d) must be equal or lower initialized max_prb (%d)\n",
-            nof_prb, q->max_prb);
+    ERROR("OFDM (Tx): Error calling set_prb: nof_prb (%d) must be equal or lower initialized max_prb (%d)\n",
+          nof_prb,
+          q->max_prb);
     return -1;
   }
 }
@@ -548,7 +547,7 @@ void srslte_ofdm_tx_slot(srslte_ofdm_t *q, int slot_in_sf) {
   for (int i = 0; i < q->slot_sz; i++) {
     float error = cabsf(output1[i] - output2[i])/cabsf(output2[i]);
     cf_t k = output1[i]/output2[i];
-    if (error > 0.1) printf("%d/%05d error=%f output=%+f%+fi gold=%+f%+fi k=%+f%+fi\n", slot_in_sf, i, error,
+    if (error > 0.1) printf("%d/%05d error=%f output=%+f%+fi gold=%+f%+fi k=%+f%+fi\n", slot_in_sf, i, ERROR(
                             __real__ output1[i], __imag__ output1[i],
                             __real__ output2[i], __imag__ output2[i],
                             __real__ k, __imag__ k);
@@ -559,7 +558,6 @@ void srslte_ofdm_tx_slot(srslte_ofdm_t *q, int slot_in_sf) {
 void srslte_ofdm_tx_slot_mbsfn(srslte_ofdm_t *q, cf_t *input, cf_t *output)
 {
   uint32_t i, cp_len;
-  
   for(i=0;i<q->nof_symbols_mbsfn;i++) {
     cp_len = ( i>(q->non_mbsfn_region-1) )?SRSLTE_CP_LEN_EXT(q->symbol_sz):SRSLTE_CP_LEN_NORM(i, q->symbol_sz);
     memcpy(&q->tmp[q->nof_guards], input, q->nof_re * sizeof(cf_t));
@@ -582,14 +580,13 @@ void srslte_ofdm_set_normalize(srslte_ofdm_t *q, bool normalize_enable) {
 void srslte_ofdm_tx_sf(srslte_ofdm_t *q)
 {
   uint32_t n;
-  if(!q->mbsfn_subframe){
+  if (!q->mbsfn_subframe) {
     for (n=0;n<2;n++) {
       srslte_ofdm_tx_slot(q, n);
     }
-  }
-  else{
-     srslte_ofdm_tx_slot_mbsfn(q, &q->in_buffer[0*q->nof_re*q->nof_symbols], &q->out_buffer[0*q->slot_sz]);
-     srslte_ofdm_tx_slot(q, 1);
+  } else {
+    srslte_ofdm_tx_slot_mbsfn(q, &q->in_buffer[0 * q->nof_re * q->nof_symbols], &q->out_buffer[0 * q->slot_sz]);
+    srslte_ofdm_tx_slot(q, 1);
   }
   if (q->freq_shift) {
     srslte_vec_prod_ccc(q->out_buffer, q->shift_buffer, q->out_buffer, 2*q->slot_sz);

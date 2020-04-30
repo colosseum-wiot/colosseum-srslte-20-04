@@ -1,19 +1,14 @@
-/**
+/*
+ * Copyright 2013-2019 Software Radio Systems Limited
  *
- * \section COPYRIGHT
+ * This file is part of srsLTE.
  *
- * Copyright 2013-2015 Software Radio Systems Limited
- *
- * \section LICENSE
- *
- * This file is part of the srsUE library.
- *
- * srsUE is free software: you can redistribute it and/or modify
+ * srsLTE is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as
  * published by the Free Software Foundation, either version 3 of
  * the License, or (at your option) any later version.
  *
- * srsUE is distributed in the hope that it will be useful,
+ * srsLTE is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU Affero General Public License for more details.
@@ -24,10 +19,10 @@
  *
  */
 
-#include <iostream>
-#include "srsue/hdr/upper/usim.h"
 #include "srslte/common/log_filter.h"
+#include "srsue/hdr/stack/upper/usim.h"
 #include <assert.h>
+#include <iostream>
 
 using namespace srsue;
 
@@ -68,20 +63,20 @@ uint16 mnc = 93;
 int main(int argc, char **argv)
 {
   srslte::log_filter usim_log("USIM");
-  bool    net_valid;
   uint8_t res[16];
+  int res_len;
   uint8_t k_asme[32];
 
   usim_args_t args;
   args.algo = "milenage";
-  args.imei = "35609204079301";
+  args.imei = "356092040793011";
   args.imsi = "208930000000001";
   args.k = "8BAF473F2F8FD09487CCCBD7097C6862";
+  args.using_op = true;
   args.op = "11111111111111111111111111111111";
 
-  srsue::usim usim;
-  usim.init(&args, &usim_log);
-  usim.generate_authentication_response(rand_enb, autn_enb, mcc, mnc, &net_valid, res, k_asme);
+  srsue::usim usim(&usim_log);
+  usim.init(&args);
 
-  assert(net_valid == true);
+  assert(usim.generate_authentication_response(rand_enb, autn_enb, mcc, mnc, res, &res_len, k_asme) == AUTH_OK);
 }

@@ -1,12 +1,7 @@
-/**
+/*
+ * Copyright 2013-2019 Software Radio Systems Limited
  *
- * \section COPYRIGHT
- *
- * Copyright 2013-2015 Software Radio Systems Limited
- *
- * \section LICENSE
- *
- * This file is part of the srsLTE library.
+ * This file is part of srsLTE.
  *
  * srsLTE is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as
@@ -23,7 +18,6 @@
  * and at http://www.gnu.org/licenses/.
  *
  */
-
 
 #include <stdbool.h>
 #include <complex.h>
@@ -164,3 +158,25 @@ void set_64QAMtable(cf_t* table)
   table[63] = -QAM64_LEVEL_4 - QAM64_LEVEL_4*_Complex_I;
 }
 
+/**
+ * Set the 256QAM modulation table */
+void set_256QAMtable(cf_t* table)
+{
+  // LTE-256QAM constellation:
+  // see [3GPP TS 36.211 version 10.5.0 Release 10, Section 7.1.5]
+  for (uint32_t i = 0; i < 256; i++) {
+    float offset = -1;
+    float real   = 0;
+    float imag   = 0;
+    for (uint32_t j = 0; j < 4; j++) {
+      real += offset;
+      imag += offset;
+      offset *= 2;
+
+      real *= ((i & (1 << (2 * j + 1)))) ? +1 : -1;
+      imag *= ((i & (1 << (2 * j + 0)))) ? +1 : -1;
+    }
+    __real__ table[i] = real / sqrt(170);
+    __imag__ table[i] = imag / sqrt(170);
+  }
+}

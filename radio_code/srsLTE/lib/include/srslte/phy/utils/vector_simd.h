@@ -1,12 +1,7 @@
-/**
+/*
+ * Copyright 2013-2019 Software Radio Systems Limited
  *
- * \section COPYRIGHT
- *
- * Copyright 2013-2015 Software Radio Systems Limited
- *
- * \section LICENSE
- *
- * This file is part of the srsLTE library.
+ * This file is part of srsLTE.
  *
  * srsLTE is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as
@@ -62,6 +57,8 @@ SRSLTE_API void srslte_vec_sum_sss_simd(const int16_t *x, const int16_t *y, int1
 
 SRSLTE_API void srslte_vec_sub_sss_simd(const int16_t *x, const int16_t *y, int16_t *z, int len);
 
+SRSLTE_API void srslte_vec_sub_bbb_simd(const int8_t *x, const int8_t *y, int8_t *z, int len);
+
 SRSLTE_API float srslte_vec_acc_ff_simd(const float *x, int len);
 
 SRSLTE_API cf_t srslte_vec_acc_cc_simd(const cf_t *x, int len);
@@ -85,6 +82,10 @@ SRSLTE_API void srslte_vec_prod_ccc_c16_simd(const int16_t *a_re, const int16_t 
                                              int16_t *r_re, int16_t *r_im, const int len);
 
 SRSLTE_API void srslte_vec_prod_sss_simd(const int16_t *x, const int16_t *y, int16_t *z, const int len);
+
+SRSLTE_API void srslte_vec_neg_sss_simd(const int16_t *x, const int16_t *y, int16_t *z, const int len);
+
+SRSLTE_API void srslte_vec_neg_bbb_simd(const int8_t *x, const int8_t *y, int8_t *z, const int len);
 
 SRSLTE_API void srslte_vec_prod_cfc_simd(const cf_t *x, const float *y, cf_t *z, const int len);
 
@@ -120,9 +121,13 @@ SRSLTE_API void srslte_vec_abs_square_cf_simd(const cf_t *x, float *z, const int
 /* Other Functions */
 SRSLTE_API void srslte_vec_lut_sss_simd(const short *x, const unsigned short *lut, short *y, const int len);
 
+SRSLTE_API void srslte_vec_lut_bbb_simd(const int8_t *x, const unsigned short *lut, int8_t *y, const int len);
+
 SRSLTE_API void srslte_vec_convert_if_simd(const int16_t *x, float *z, const float scale, const int len);
 
 SRSLTE_API void srslte_vec_convert_fi_simd(const float *x, int16_t *z, const float scale, const int len);
+
+SRSLTE_API void srslte_vec_convert_fb_simd(const float *x, int8_t *z, const float scale, const int len);
 
 SRSLTE_API void srslte_vec_cp_simd(const cf_t *src, cf_t *dst, int len);
 
@@ -130,8 +135,16 @@ SRSLTE_API void srslte_vec_interleave_simd(const cf_t *x, const cf_t *y, cf_t *z
 
 SRSLTE_API void srslte_vec_interleave_add_simd(const cf_t *x, const cf_t *y, cf_t *z, const int len);
 
+SRSLTE_API void srslte_vec_gen_sine_simd(cf_t amplitude, float freq, cf_t* z, int len);
+
+SRSLTE_API void srslte_vec_apply_cfo_simd(const cf_t *x, float cfo, cf_t *z, int len);
+
+SRSLTE_API float srslte_vec_estimate_frequency_simd(const cf_t* x, int len);
+
 /* SIMD Find Max functions */
 SRSLTE_API uint32_t srslte_vec_max_fi_simd(const float *x, const int len);
+
+SRSLTE_API uint32_t srslte_vec_max_abs_fi_simd(const float *x, const int len);
 
 SRSLTE_API uint32_t srslte_vec_max_ci_simd(const cf_t *x, const int len);
 

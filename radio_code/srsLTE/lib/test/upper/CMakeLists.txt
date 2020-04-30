@@ -1,5 +1,5 @@
 #
-# Copyright 2013-2017 Software Radio Systems Limited
+# Copyright 2013-2019 Software Radio Systems Limited
 #
 # This file is part of srsLTE
 #
@@ -10,7 +10,7 @@
 #
 # srsLTE is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
 # GNU Affero General Public License for more details.
 #
 # A copy of the GNU Affero General Public License can be found in
@@ -30,9 +30,14 @@ add_executable(rlc_am_test rlc_am_test.cc)
 target_link_libraries(rlc_am_test srslte_upper srslte_phy srslte_common)
 add_test(rlc_am_test rlc_am_test)
 
-add_executable(rlc_am_stress_test rlc_am_stress_test.cc)
-target_link_libraries(rlc_am_stress_test srslte_upper srslte_phy srslte_common ${Boost_LIBRARIES})
-add_test(rlc_am_stress_test rlc_am_stress_test --duration 10)
+add_executable(rlc_stress_test rlc_stress_test.cc)
+target_link_libraries(rlc_stress_test srslte_upper srslte_phy srslte_common ${Boost_LIBRARIES})
+add_test(rlc_am_stress_test rlc_stress_test --mode=AM --loglevel 1 --sdu_gen_delay 250)
+add_test(rlc_um_stress_test rlc_stress_test --mode=UM --loglevel 1)
+add_test(rlc_tm_stress_test rlc_stress_test --mode=TM --loglevel 1 --random_opp=false)
+set_tests_properties(rlc_am_stress_test PROPERTIES TIMEOUT 3000)
+set_tests_properties(rlc_um_stress_test PROPERTIES TIMEOUT 3000)
+set_tests_properties(rlc_tm_stress_test PROPERTIES TIMEOUT 3000)
 
 add_executable(rlc_um_data_test rlc_um_data_test.cc)
 target_link_libraries(rlc_um_data_test srslte_upper srslte_phy srslte_common)
@@ -41,7 +46,22 @@ add_test(rlc_um_data_test rlc_um_data_test)
 add_executable(rlc_um_test rlc_um_test.cc)
 target_link_libraries(rlc_um_test srslte_upper srslte_phy)
 add_test(rlc_um_test rlc_um_test)
-  
+
+add_executable(rlc_common_test rlc_common_test.cc)
+target_link_libraries(rlc_common_test srslte_upper srslte_phy)
+add_test(rlc_common_test rlc_common_test)
+
+add_executable(rlc_um_nr_pdu_test rlc_um_nr_pdu_test.cc)
+target_link_libraries(rlc_um_nr_pdu_test srslte_upper srslte_phy)
+add_test(rlc_um_nr_pdu_test rlc_um_nr_pdu_test)
+
+add_executable(rlc_um_nr_test rlc_um_nr_test.cc)
+target_link_libraries(rlc_um_nr_test srslte_upper srslte_phy)
+add_test(rlc_um_nr_test rlc_um_nr_test)
+
+add_executable(pdcp_nr_test pdcp_nr_test.cc)
+target_link_libraries(pdcp_nr_test srslte_upper srslte_common)
+add_test(pdcp_nr_test pdcp_nr_test)
 
 ########################################################################
 # Option to run command after build (useful for remote builds)

@@ -1,5 +1,5 @@
 #
-# Copyright 2013-2017 Software Radio Systems Limited
+# Copyright 2013-2019 Software Radio Systems Limited
 #
 # This file is part of srsLTE
 #
@@ -10,7 +10,7 @@
 #
 # srsLTE is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
 # GNU Affero General Public License for more details.
 #
 # A copy of the GNU Affero General Public License can be found in
@@ -18,6 +18,38 @@
 # and at http://www.gnu.org/licenses/.
 #
 
-add_executable(rrc_meas_test rrc_meas_test.cc)
-target_link_libraries(rrc_meas_test srslte_common srslte_phy srslte_asn1)
-add_test(rrc_meas_test rrc_meas_test)
+add_executable(s1ap_test s1ap_test.cc)
+target_link_libraries(s1ap_test srslte_common srslte_asn1)
+add_test(s1ap_test s1ap_test)
+
+add_executable(srslte_asn1_rrc_mcch_test srslte_asn1_rrc_mcch_test.cc)
+target_link_libraries(srslte_asn1_rrc_mcch_test rrc_asn1 srslte_common)
+add_test(srslte_asn1_rrc_mcch_test srslte_asn1_rrc_mcch_test)
+
+add_executable(srslte_asn1_rrc_meas_test srslte_asn1_rrc_meas_test.cc)
+target_link_libraries(srslte_asn1_rrc_meas_test rrc_asn1 srslte_common)
+add_test(srslte_asn1_rrc_meas_test srslte_asn1_rrc_meas_test)
+
+add_executable(srslte_asn1_rrc_ul_dcch_test srslte_asn1_rrc_ul_dcch_test.cc)
+target_link_libraries(srslte_asn1_rrc_ul_dcch_test rrc_asn1 srslte_common)
+add_test(srslte_asn1_rrc_ul_dcch_test srslte_asn1_rrc_ul_dcch_test)
+
+add_executable(srslte_asn1_rrc_dl_ccch_test srslte_asn1_rrc_dl_ccch_test.cc)
+target_link_libraries(srslte_asn1_rrc_dl_ccch_test rrc_asn1 srslte_common)
+add_test(srslte_asn1_rrc_dl_ccch_test srslte_asn1_rrc_dl_ccch_test)
+
+add_executable(srslte_asn1_rrc_dl_dcch_test srslte_asn1_rrc_dl_dcch_test.cc)
+target_link_libraries(srslte_asn1_rrc_dl_dcch_test rrc_asn1 srslte_common)
+add_test(srslte_asn1_rrc_dl_dcch_test srslte_asn1_rrc_dl_dcch_test)
+
+add_executable(srslte_asn1_m2ap_test srslte_asn1_m2ap_test.cc)
+target_link_libraries(srslte_asn1_m2ap_test srslte_common srslte_phy srslte_asn1)
+add_test(srslte_asn1_m2ap_test srslte_asn1_m2ap_test)
+
+add_executable(srslte_asn1_nas_test srslte_asn1_nas_test.cc)
+target_link_libraries(srslte_asn1_nas_test srslte_common srslte_phy srslte_asn1)
+add_test(srslte_asn1_nas_test srslte_asn1_nas_test)
+
+add_executable(rrc_asn1_test rrc_asn1_test.cc)
+target_link_libraries(rrc_asn1_test rrc_asn1)
+add_test(rrc_asn1_test rrc_asn1_test)

@@ -1,12 +1,7 @@
-/**
+/*
+ * Copyright 2013-2019 Software Radio Systems Limited
  *
- * \section COPYRIGHT
- *
- * Copyright 2013-2015 Software Radio Systems Limited
- *
- * \section LICENSE
- *
- * This file is part of the srsLTE library.
+ * This file is part of srsLTE.
  *
  * srsLTE is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as
@@ -47,7 +42,12 @@ void srslte_scrambling_s(srslte_sequence_t *s, short *data) {
 
 void srslte_scrambling_s_offset(srslte_sequence_t *s, short *data, int offset, int len) {
   assert (len + offset <= s->cur_len);
-  srslte_vec_prod_sss(data, &s->c_short[offset], data, len);
+  srslte_vec_neg_sss(data, &s->c_short[offset], data, len);
+}
+
+void srslte_scrambling_sb_offset(srslte_sequence_t *s, int8_t *data, int offset, int len) {
+  assert (len + offset <= s->cur_len);
+  srslte_vec_neg_bbb(data, &s->c_char[offset], data, len);
 }
 
 void srslte_scrambling_c(srslte_sequence_t *s, cf_t *data) {

@@ -1,12 +1,7 @@
-/**
+/*
+ * Copyright 2013-2019 Software Radio Systems Limited
  *
- * \section COPYRIGHT
- *
- * Copyright 2013-2015 Software Radio Systems Limited
- *
- * \section LICENSE
- *
- * This file is part of the srsLTE library.
+ * This file is part of srsLTE.
  *
  * srsLTE is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as
@@ -23,7 +18,6 @@
  * and at http://www.gnu.org/licenses/.
  *
  */
-
 
 #include <stdbool.h>
 #include <complex.h>
@@ -59,6 +53,9 @@ void srslte_modem_table_free(srslte_modem_table_t* q) {
   if (q->symbol_table_16qam) {
     free(q->symbol_table_16qam);
   }
+  if (q->symbol_table_256qam) {
+    free(q->symbol_table_256qam);
+  }
   bzero(q, sizeof(srslte_modem_table_t));
 }
 void srslte_modem_table_reset(srslte_modem_table_t* q) {
@@ -82,7 +79,6 @@ int srslte_modem_table_set(srslte_modem_table_t* q, cf_t* table, uint32_t nsymbo
 int srslte_modem_table_lte(srslte_modem_table_t* q, srslte_mod_t modulation) {
   srslte_modem_table_init(q);
   switch(modulation) {
-  case SRSLTE_MOD_LAST:
   case SRSLTE_MOD_BPSK:
     q->nbits_x_symbol = 1;
     q->nsymbols = 2;
@@ -114,6 +110,14 @@ int srslte_modem_table_lte(srslte_modem_table_t* q, srslte_mod_t modulation) {
       return SRSLTE_ERROR;
     }
     set_64QAMtable(q->symbol_table);
+    break;
+  case SRSLTE_MOD_256QAM:
+    q->nbits_x_symbol = 8;
+    q->nsymbols       = 256;
+    if (table_create(q)) {
+      return SRSLTE_ERROR;
+    }
+    set_256QAMtable(q->symbol_table);
     break;
   }
   return SRSLTE_SUCCESS;
@@ -153,6 +157,9 @@ void srslte_modem_table_bytes(srslte_modem_table_t* q) {
       break;
     case 6:
       q->byte_tables_init = true; 
+      break;
+    case 8:
+      q->byte_tables_init = true;
       break;
   }
 }

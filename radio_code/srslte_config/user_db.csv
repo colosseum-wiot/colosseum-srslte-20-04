@@ -1,10 +1,21 @@
-ue1,001010123456701,00112233445566778899aabbccddee01,63bfa50ee6523365ff14c1f45f88737d,9001,000000001243
-ue2,001010123456702,00112233445566778899aabbccddee02,63bfa50ee6523365ff14c1f45f88737d,9001,000000001242
-ue3,001010123456703,00112233445566778899aabbccddee03,63bfa50ee6523365ff14c1f45f88737d,9001,000000001242
-ue4,001010123456704,00112233445566778899aabbccddee04,63bfa50ee6523365ff14c1f45f88737d,9001,000000001242
-ue5,001010123456705,00112233445566778899aabbccddee05,63bfa50ee6523365ff14c1f45f88737d,9001,000000001242
-ue6,001010123456706,00112233445566778899aabbccddee06,63bfa50ee6523365ff14c1f45f88737d,9001,000000001242
-ue7,001010123456707,00112233445566778899aabbccddee07,63bfa50ee6523365ff14c1f45f88737d,9001,000000001242
-ue8,001010123456708,00112233445566778899aabbccddee08,63bfa50ee6523365ff14c1f45f88737d,9001,000000001242
-ue9,001010123456709,00112233445566778899aabbccddee09,63bfa50ee6523365ff14c1f45f88737d,9001,000000001242
-ue10,001010123456710,00112233445566778899aabbccddee10,63bfa50ee6523365ff14c1f45f88737d,9001,000000001242
+#                                                                                           
+# .csv to store UE's information in HSS                                                     
+# Kept in the following format: "Name,Auth,IMSI,Key,OP_Type,OP,AMF,SQN,QCI,IP_alloc"      
+#                                                                                           
+# Name:     Human readable name to help distinguish UE's. Ignored by the HSS                
+# IMSI:     UE's IMSI value                                                                 
+# Auth:     Authentication algorithm used by the UE. Valid algorithms are XOR               
+#           (xor) and MILENAGE (mil)                                                        
+# Key:      UE's key, where other keys are derived from. Stored in hexadecimal              
+# OP_Type:  Operator's code type, either OP or OPc                                          
+# OP/OPc:   Operator Code/Cyphered Operator Code, stored in hexadecimal                     
+# AMF:      Authentication management field, stored in hexadecimal                          
+# SQN:      UE's Sequence number for freshness of the authentication                        
+# QCI:      QoS Class Identifier for the UE's default bearer.                               
+# IP_alloc: IP allocation stratagy for the SPGW.                                            
+#           With 'dynamic' the SPGW will automatically allocate IPs                         
+#           With a valid IPv4 (e.g. '172.16.0.2') the UE will have a statically assigned IP.
+#                                                                                           
+# Note: Lines starting by '#' are ignored and will be overwritten                           
+ue2,mil,001010123456780,00112233445566778899aabbccddeeff,opc,63bfa50ee6523365ff14c1f45f88737d,8000,000000001234,7,dynamic
+ue1,xor,001010123456789,00112233445566778899aabbccddeeff,opc,63bfa50ee6523365ff14c1f45f88737d,9001,000000001276,7,dynamic

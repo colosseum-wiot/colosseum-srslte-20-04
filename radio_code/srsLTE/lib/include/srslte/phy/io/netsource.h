@@ -1,12 +1,7 @@
-/**
+/*
+ * Copyright 2013-2019 Software Radio Systems Limited
  *
- * \section COPYRIGHT
- *
- * Copyright 2013-2015 Software Radio Systems Limited
- *
- * \section LICENSE
- *
- * This file is part of the srsLTE library.
+ * This file is part of srsLTE.
  *
  * srsLTE is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as
@@ -71,6 +66,8 @@ SRSLTE_API int srslte_netsource_set_nonblocking(srslte_netsource_t *q);
 SRSLTE_API int srslte_netsource_read(srslte_netsource_t *q, 
                                      void *buffer, 
                                      int nof_bytes);
+
+SRSLTE_API int srslte_netsource_write(srslte_netsource_t* q, void* buffer, int nbytes);
 
 SRSLTE_API int srslte_netsource_set_timeout(srslte_netsource_t *q, 
                                             uint32_t microseconds); 

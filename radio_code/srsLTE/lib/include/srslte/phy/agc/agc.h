@@ -1,12 +1,7 @@
-/**
+/*
+ * Copyright 2013-2019 Software Radio Systems Limited
  *
- * \section COPYRIGHT
- *
- * Copyright 2013-2015 Software Radio Systems Limited
- *
- * \section LICENSE
- *
- * This file is part of the srsLTE library.
+ * This file is part of srsLTE.
  *
  * srsLTE is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as
@@ -53,6 +48,8 @@ typedef enum SRSLTE_API {
 typedef struct SRSLTE_API{
   float bandwidth;
   double gain; 
+  double min_gain;
+  double max_gain;
   float y_out;
   bool lock;
   bool isfirst; 
@@ -78,6 +75,8 @@ SRSLTE_API int srslte_agc_init_uhd(srslte_agc_t *q,
 SRSLTE_API void srslte_agc_free(srslte_agc_t *q);
 
 SRSLTE_API void srslte_agc_reset(srslte_agc_t *q);
+
+SRSLTE_API void srslte_agc_set_gain_range(srslte_agc_t *q, double min_gain, double max_gain);
 
 SRSLTE_API void srslte_agc_set_bandwidth(srslte_agc_t *q, 
                                          float bandwidth);

@@ -1,5 +1,5 @@
 #
-# Copyright 2013-2017 Software Radio Systems Limited
+# Copyright 2013-2019 Software Radio Systems Limited
 #
 # This file is part of srsLTE
 #
@@ -10,7 +10,7 @@
 #
 # srsLTE is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
 # GNU Affero General Public License for more details.
 #
 # A copy of the GNU Affero General Public License can be found in
@@ -47,4 +47,11 @@ link_directories(
 # Add subdirectories
 ########################################################################
 add_subdirectory(src)
-#add_subdirectory(test)
+
+########################################################################
+# Default configuration files
+########################################################################
+install(FILES epc.conf.example DESTINATION ${DATA_DIR})
+install(FILES mbms.conf.example DESTINATION ${DATA_DIR})
+install(FILES user_db.csv.example DESTINATION ${DATA_DIR})
+install(PROGRAMS srsepc_if_masq.sh DESTINATION ${RUNTIME_DIR})

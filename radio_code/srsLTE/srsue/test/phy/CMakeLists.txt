@@ -1,5 +1,5 @@
 #
-# Copyright 2013-2017 Software Radio Systems Limited
+# Copyright 2013-2019 Software Radio Systems Limited
 #
 # This file is part of srsLTE
 #
@@ -10,7 +10,7 @@
 #
 # srsLTE is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
 # GNU Affero General Public License for more details.
 #
 # A copy of the GNU Affero General Public License can be found in
@@ -18,8 +18,29 @@
 # and at http://www.gnu.org/licenses/.
 #
 
-#add_executable(ue_itf_test_sib1 ue_itf_test_sib1.cc)
-#target_link_libraries(ue_itf_test_sib1 srsue_phy srslte_common srslte_phy srslte_radio ${CMAKE_THREAD_LIBS_INIT} ${Boost_LIBRARIES})
+include_directories(
+        ${Boost_INCLUDE_DIRS}
+        ${SEC_INCLUDE_DIRS}
+        ${PROJECT_SOURCE_DIR}
+)
 
-#add_executable(ue_itf_test_prach ue_itf_test_prach.cc)
-#target_link_libraries(ue_itf_test_prach srsue_phy srslte_common srslte_phy srslte_radio ${CMAKE_THREAD_LIBS_INIT} ${Boost_LIBRARIES})
+link_directories(
+        ${Boost_LIBRARY_DIRS}
+        ${SEC_LIBRARY_DIRS}
+)
+
+add_executable(scell_search_test scell_search_test.cc)
+target_link_libraries(scell_search_test
+        srsue_phy
+        srsue_stack
+        srsue_upper
+        srsue_mac
+        srsue_rrc
+        srslte_common
+        srslte_phy
+        srslte_radio
+        srslte_upper
+        rrc_asn1
+        ${CMAKE_THREAD_LIBS_INIT}
+        ${Boost_LIBRARIES})
+add_test(scell_search_test scell_search_test --duration=1 --phy_lib_log_level=0 --intra_meas_log_level=none --nof_enb=2 --cell.nof_prb=25)

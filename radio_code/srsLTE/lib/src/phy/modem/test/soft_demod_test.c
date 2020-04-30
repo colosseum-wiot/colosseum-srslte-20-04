@@ -1,12 +1,7 @@
-/**
+/*
+ * Copyright 2013-2019 Software Radio Systems Limited
  *
- * \section COPYRIGHT
- *
- * Copyright 2013-2015 Software Radio Systems Limited
- *
- * \section LICENSE
- *
- * This file is part of the srsLTE library.
+ * This file is part of srsLTE.
  *
  * srsLTE is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as
@@ -73,9 +68,13 @@ void parse_args(int argc, char **argv) {
       case 6:
         modulation = SRSLTE_MOD_64QAM;
         break;
+      case 8:
+        modulation = SRSLTE_MOD_256QAM;
+        break;
       default:
-        fprintf(stderr, "Invalid modulation %d. Possible values: "
-            "(1: BPSK, 2: QPSK, 4: QAM16, 6: QAM64)\n", atoi(argv[optind]));
+        ERROR("Invalid modulation %d. Possible values: "
+              "(1: BPSK, 2: QPSK, 4: QAM16, 6: QAM64)\n",
+              atoi(argv[optind]));
         break;
       }
       break;
@@ -100,6 +99,8 @@ float mse_threshold() {
       return 0.11; 
     case SRSLTE_MOD_64QAM:
       return 0.19;
+    case SRSLTE_MOD_256QAM:
+      return 0.3;
     default:
       return -1.0;
   }
@@ -112,12 +113,13 @@ int main(int argc, char **argv) {
   cf_t *symbols;
   float *llr;
   short *llr_s;
+  int8_t *llr_b;
 
   parse_args(argc, argv);
 
   /* initialize objects */
   if (srslte_modem_table_lte(&mod, modulation)) {
-    fprintf(stderr, "Error initializing modem table\n");
+    ERROR("Error initializing modem table\n");
     exit(-1);
   }
 
@@ -153,13 +155,20 @@ int main(int argc, char **argv) {
     exit(-1);
   }
 
+  llr_b = srslte_vec_malloc(sizeof(int8_t) * num_bits);
+  if (!llr_b) {
+    perror("malloc");
+    exit(-1);
+  }
+
   /* generate random data */
   srand(0);
   
   int ret = -1;
   struct timeval t[3]; 
   float mean_texec = 0.0; 
-  float mean_texec_s = 0.0; 
+  float mean_texec_s = 0.0;
+  float mean_texec_b = 0.0;
   for (int n=0;n<nof_frames;n++) {
     for (i=0;i<num_bits;i++) {
       input[i] = rand()%2;
@@ -186,7 +195,16 @@ int main(int argc, char **argv) {
     if (n > 0) {
       mean_texec_s = SRSLTE_VEC_CMA((float) t[0].tv_usec, mean_texec_s, n-1);      
     }
-    
+
+    gettimeofday(&t[1], NULL);
+    srslte_demod_soft_demodulate_b(modulation, symbols, llr_b, num_bits / mod.nbits_x_symbol);
+    gettimeofday(&t[2], NULL);
+    get_time_interval(t);
+
+    if (n > 0) {
+      mean_texec_b = SRSLTE_VEC_CMA((float) t[0].tv_usec, mean_texec_b, n-1);
+    }
+
     if (SRSLTE_VERBOSE_ISDEBUG()) {
       printf("bits=");
       srslte_vec_fprint_b(stdout, input, num_bits);
@@ -200,6 +218,9 @@ int main(int argc, char **argv) {
       printf("llr_s=");
       srslte_vec_fprint_s(stdout, llr_s, num_bits);
 
+      printf("llr_b=");
+      srslte_vec_fprint_bs(stdout, llr_b, num_bits);
+
     }
 
     // Check demodulation errors
@@ -212,7 +233,9 @@ int main(int argc, char **argv) {
   }
   ret = 0; 
 
-clean_exit:  
+clean_exit:
+  free(llr_b);
+  free(llr_s);
   free(llr);
   free(symbols);
   free(output);
@@ -220,7 +243,7 @@ clean_exit:
 
   srslte_modem_table_free(&mod);
 
-  printf("Mean Throughput: %.2f/%.2f. Mbps ExTime: %.2f/%.2f us\n", 
-         num_bits/mean_texec, num_bits/mean_texec_s, mean_texec, mean_texec_s);    
+  printf("Mean Throughput: %.2f/%.2f/%.2f. Mbps ExTime: %.2f/%.2f/%.2f us\n",
+         num_bits/mean_texec, num_bits/mean_texec_s, num_bits/mean_texec_b, mean_texec, mean_texec_s, mean_texec_b);
   exit(ret);
 }

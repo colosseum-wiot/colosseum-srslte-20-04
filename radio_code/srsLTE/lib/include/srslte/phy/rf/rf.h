@@ -1,12 +1,7 @@
-/**
+/*
+ * Copyright 2013-2019 Software Radio Systems Limited
  *
- * \section COPYRIGHT
- *
- * Copyright 2013-2015 Software Radio Systems Limited
- *
- * \section LICENSE
- *
- * This file is part of the srsLTE library.
+ * This file is part of srsLTE.
  *
  * srsLTE is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as
@@ -23,7 +18,7 @@
  * and at http://www.gnu.org/licenses/.
  *
  */
-  
+
 #ifndef SRSLTE_RF_H 
 #define SRSLTE_RF_H
 
@@ -39,6 +34,7 @@ typedef struct {
   void *dev;
   
   // The following variables are for threaded RX gain control 
+  bool thread_gain_run;
   pthread_t thread_gain; 
   pthread_cond_t  cond; 
   pthread_mutex_t mutex; 
@@ -49,11 +45,11 @@ typedef struct {
 } srslte_rf_t;
 
 typedef struct {
-  float dc_gain;
-  float dc_phase;
-  float iq_i;
-  float iq_q; 
-} srslte_rf_cal_t; 
+  double min_tx_gain;
+  double max_tx_gain;
+  double min_rx_gain;
+  double max_rx_gain;
+} srslte_rf_info_t;
 
 typedef struct {
   enum { 
@@ -88,10 +84,6 @@ SRSLTE_API int srslte_rf_start_gain_thread(srslte_rf_t *rf,
 
 SRSLTE_API int srslte_rf_close(srslte_rf_t *h);
 
-SRSLTE_API void srslte_rf_set_tx_cal(srslte_rf_t *h, srslte_rf_cal_t *cal);
-
-SRSLTE_API void srslte_rf_set_rx_cal(srslte_rf_t *h, srslte_rf_cal_t *cal);
-
 SRSLTE_API int srslte_rf_start_rx_stream(srslte_rf_t *h, bool now);
 
 SRSLTE_API int srslte_rf_stop_rx_stream(srslte_rf_t *h);
@@ -100,17 +92,9 @@ SRSLTE_API void srslte_rf_flush_buffer(srslte_rf_t *h);
 
 SRSLTE_API bool srslte_rf_has_rssi(srslte_rf_t *h);
 
-SRSLTE_API float srslte_rf_get_rssi(srslte_rf_t *h); 
+SRSLTE_API float srslte_rf_get_rssi(srslte_rf_t* h);
 
-SRSLTE_API bool srslte_rf_rx_wait_lo_locked(srslte_rf_t *h);
-
-SRSLTE_API void srslte_rf_set_master_clock_rate(srslte_rf_t *h, 
-                                         double rate); 
-
-SRSLTE_API bool srslte_rf_is_master_clock_dynamic(srslte_rf_t *h); 
-
-SRSLTE_API double srslte_rf_set_rx_srate(srslte_rf_t *h, 
-                                  double freq);
+SRSLTE_API double srslte_rf_set_rx_srate(srslte_rf_t* h, double freq);
 
 SRSLTE_API double srslte_rf_set_rx_gain(srslte_rf_t *h, 
                                  double gain);
@@ -125,13 +109,14 @@ SRSLTE_API double srslte_rf_get_rx_gain(srslte_rf_t *h);
 
 SRSLTE_API double srslte_rf_get_tx_gain(srslte_rf_t *h);
 
+SRSLTE_API srslte_rf_info_t *srslte_rf_get_info(srslte_rf_t *h);
+
 SRSLTE_API void srslte_rf_suppress_stdout(srslte_rf_t *h);
 
 SRSLTE_API void srslte_rf_register_error_handler(srslte_rf_t *h, 
                                                  srslte_rf_error_handler_t error_handler);
 
-SRSLTE_API double srslte_rf_set_rx_freq(srslte_rf_t *h, 
-                                 double freq);
+SRSLTE_API double srslte_rf_set_rx_freq(srslte_rf_t* h, uint32_t ch, double freq);
 
 SRSLTE_API int srslte_rf_recv(srslte_rf_t *h, 
                        void *data, 
@@ -158,12 +143,11 @@ SRSLTE_API double srslte_rf_set_tx_srate(srslte_rf_t *h,
 SRSLTE_API double srslte_rf_set_tx_gain(srslte_rf_t *h, 
                                  double gain);
 
-SRSLTE_API double srslte_rf_set_tx_freq(srslte_rf_t *h,
-                                 double freq);
+SRSLTE_API double srslte_rf_set_tx_freq(srslte_rf_t* h, uint32_t ch, double freq);
 
-SRSLTE_API void srslte_rf_get_time(srslte_rf_t *h, 
-                            time_t *secs, 
-                            double *frac_secs); 
+SRSLTE_API void srslte_rf_get_time(srslte_rf_t* h, time_t* secs, double* frac_secs);
+
+SRSLTE_API int srslte_rf_sync(srslte_rf_t* rf);
 
 SRSLTE_API int srslte_rf_send(srslte_rf_t *h, 
                        void *data, 

@@ -1,12 +1,7 @@
-/**
+/*
+ * Copyright 2013-2019 Software Radio Systems Limited
  *
- * \section COPYRIGHT
- *
- * Copyright 2013-2015 Software Radio Systems Limited
- *
- * \section LICENSE
- *
- * This file is part of the srsLTE library.
+ * This file is part of srsLTE.
  *
  * srsLTE is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as
@@ -90,7 +85,7 @@ int init_sequence(srslte_sequence_t *seq, char *name) {
     bzero(seq, sizeof(srslte_sequence_t));
     return srslte_sequence_pdsch(seq, 1234, 0, 0, cell_id, nof_bits);
   } else {
-    fprintf(stderr, "Unsupported sequence name %s\n", name);
+    ERROR("Unsupported sequence name %s\n", name);
     return -1;
   }
 }
@@ -106,7 +101,7 @@ int main(int argc, char **argv) {
   parse_args(argc, argv);
 
   if (init_sequence(&seq, srslte_sequence_name) == -1) {
-    fprintf(stderr, "Error initiating sequence %s\n", srslte_sequence_name);
+    ERROR("Error initiating sequence %s\n", srslte_sequence_name);
     exit(-1);
   }
 
@@ -177,6 +172,83 @@ int main(int argc, char **argv) {
 
     free(input_f);
     free(scrambled_f);
+
+    int16_t *input_s, *scrambled_s;
+
+    // Scramble also shorts
+    input_s= malloc(sizeof(int16_t) * seq.cur_len);
+    if (!input_s) {
+      perror("malloc");
+      exit(-1);
+    }
+    scrambled_s = malloc(sizeof(int16_t) * seq.cur_len);
+    if (!scrambled_s) {
+      perror("malloc");
+      exit(-1);
+    }
+
+    for (i=0;i<seq.cur_len;i++) {
+      input_s[i] = 100*(rand()/RAND_MAX)-50;
+      scrambled_s[i] = input_s[i];
+    }
+
+    gettimeofday(&t[1], NULL);
+    srslte_scrambling_s(&seq, scrambled_s);
+    gettimeofday(&t[2], NULL);
+    srslte_scrambling_s(&seq, scrambled_s);
+
+
+    get_time_interval(t);
+    printf("Texec short=%ld us for %d bits\n", t[0].tv_usec, seq.cur_len);
+
+    for (i=0;i<seq.cur_len;i++) {
+      if (scrambled_s[i] != input_s[i]) {
+        printf("Error in %d\n", i);
+        exit(-1);
+      }
+    }
+
+    free(input_s);
+    free(scrambled_s);
+
+
+    int8_t *input_b, *scrambled_b;
+
+    // Scramble also bytes
+    input_b= malloc(sizeof(int8_t) * seq.cur_len);
+    if (!input_b) {
+      perror("malloc");
+      exit(-1);
+    }
+    scrambled_b = malloc(sizeof(int8_t) * seq.cur_len);
+    if (!scrambled_b) {
+      perror("malloc");
+      exit(-1);
+    }
+
+    for (i=0;i<seq.cur_len;i++) {
+      input_b[i] = 100*(rand()/RAND_MAX)-50;
+      scrambled_b[i] = input_b[i];
+    }
+
+    gettimeofday(&t[1], NULL);
+    srslte_scrambling_sb_offset(&seq, scrambled_b, 0, seq.cur_len);
+    gettimeofday(&t[2], NULL);
+    srslte_scrambling_sb_offset(&seq, scrambled_b, 0, seq.cur_len);
+
+
+    get_time_interval(t);
+    printf("Texec char=%ld us for %d bits\n", t[0].tv_usec, seq.cur_len);
+
+    for (i=0;i<seq.cur_len;i++) {
+      if (scrambled_b[i] != input_b[i]) {
+        printf("Error in %d\n", i);
+        exit(-1);
+      }
+    }
+
+    free(input_b);
+    free(scrambled_b);
   }
   printf("Ok\n");
   srslte_sequence_free(&seq);

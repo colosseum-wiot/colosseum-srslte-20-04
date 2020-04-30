@@ -1,19 +1,14 @@
-/**
- *
- * \section COPYRIGHT
- *
- * Copyright 2013-2017 Software Radio Systems Limited
- *
- * \section LICENSE
+/*
+ * Copyright 2013-2019 Software Radio Systems Limited
  *
  * This file is part of srsLTE.
  *
- * srsUE is free software: you can redistribute it and/or modify
+ * srsLTE is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as
  * published by the Free Software Foundation, either version 3 of
  * the License, or (at your option) any later version.
  *
- * srsUE is distributed in the hope that it will be useful,
+ * srsLTE is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU Affero General Public License for more details.
@@ -29,24 +24,38 @@
 
 #include "srslte/common/timers.h"
 #include "srslte/common/security.h"
-#include "srslte/asn1/liblte_rrc.h"
 #include <string>
-
 
 namespace srslte {
 
-class srslte_nas_config_t
-{
-public:
-  srslte_nas_config_t(uint32_t lcid_ = 0, std::string apn_ = "")
-    :lcid(lcid_),
-     apn(apn_)
-    {}
+typedef struct {
+  std::string phy_level;
+  std::string phy_lib_level;
+  int         phy_hex_limit;
+} phy_log_args_t;
 
-  uint32_t    lcid;
-  std::string apn;
-};
-
+// RF/radio args
+typedef struct {
+  std::string type;
+  std::string log_level;
+  float       dl_freq;
+  float       ul_freq;
+  float       freq_offset;
+  float       rx_gain;
+  float       tx_gain;
+  float       tx_max_power;
+  float       tx_gain_offset;
+  float       rx_gain_offset;
+  uint32_t    nof_radios;
+  uint32_t    nof_rf_channels; // Number of RF channels per radio
+  uint32_t    nof_rx_ant;      // Number of RF channels for MIMO
+  uint32_t    nof_tx_ports;    // Number of Tx ports for MIMO
+  std::string device_name;
+  std::string device_args[SRSLTE_MAX_RADIOS];
+  std::string time_adv_nsamples;
+  std::string burst_preamble;
+  std::string continuous_tx;
+} rf_args_t;
 
 class srslte_gw_config_t
 {
@@ -58,20 +67,36 @@ public:
   uint32_t lcid;
 };
 
+const uint8_t PDCP_SN_LEN_5  = 5;
+const uint8_t PDCP_SN_LEN_7  = 7;
+const uint8_t PDCP_SN_LEN_12 = 12;
+const uint8_t PDCP_SN_LEN_18 = 18;
 
-class srslte_pdcp_config_t
+typedef enum { PDCP_RB_IS_SRB, PDCP_RB_IS_DRB } pdcp_rb_type_t;
+
+class pdcp_config_t
 {
 public:
-  srslte_pdcp_config_t(bool is_control_ = false, bool is_data_ = false, uint8_t direction_ = SECURITY_DIRECTION_UPLINK)
-    :direction(direction_)
-    ,is_control(is_control_)
-    ,is_data(is_data_)
-    ,sn_len(12) {}
+  pdcp_config_t(uint8_t              bearer_id_,
+                pdcp_rb_type_t       rb_type_,
+                security_direction_t tx_direction_,
+                security_direction_t rx_direction_,
+                uint8_t              sn_len_) :
+    bearer_id(bearer_id_),
+    rb_type(rb_type_),
+    tx_direction(tx_direction_),
+    rx_direction(rx_direction_),
+    sn_len(sn_len_)
+  {
+    hdr_len_bytes = ceil((float)sn_len / 8);
+  }
 
-  uint8_t  direction;
-  bool     is_control;
-  bool     is_data;
-  uint8_t  sn_len;
+  uint8_t              bearer_id     = 1;
+  pdcp_rb_type_t       rb_type       = PDCP_RB_IS_DRB;
+  security_direction_t tx_direction  = SECURITY_DIRECTION_DOWNLINK;
+  security_direction_t rx_direction  = SECURITY_DIRECTION_UPLINK;
+  uint8_t              sn_len        = PDCP_SN_LEN_12;
+  uint8_t              hdr_len_bytes = 2;
 
   // TODO: Support the following configurations
   // bool do_rohc;

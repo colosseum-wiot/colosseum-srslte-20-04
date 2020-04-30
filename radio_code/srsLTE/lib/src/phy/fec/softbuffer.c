@@ -1,12 +1,7 @@
-/**
+/*
+ * Copyright 2013-2019 Software Radio Systems Limited
  *
- * \section COPYRIGHT
- *
- * Copyright 2013-2015 Software Radio Systems Limited
- *
- * \section LICENSE
- *
- * This file is part of the srsLTE library.
+ * This file is part of srsLTE.
  *
  * srsLTE is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as
@@ -48,8 +43,8 @@ int srslte_softbuffer_rx_init(srslte_softbuffer_rx_t *q, uint32_t nof_prb) {
   
   if (q != NULL) {    
     bzero(q, sizeof(srslte_softbuffer_rx_t));
-    
-    ret = srslte_ra_tbs_from_idx(26, nof_prb);
+
+    ret = srslte_ra_tbs_from_idx(33, nof_prb);
     if (ret != SRSLTE_ERROR) {
       q->max_cb =  (uint32_t) ret / (SRSLTE_TCOD_MAX_LEN_CB - 24) + 1; 
       ret = SRSLTE_ERROR;
@@ -143,11 +138,15 @@ void srslte_softbuffer_rx_reset_cb(srslte_softbuffer_rx_t *q, uint32_t nof_cb) {
       if (q->buffer_f[i]) {
         bzero(q->buffer_f[i], SOFTBUFFER_SIZE*sizeof(int16_t));
       }
+      if (q->data[i]) {
+        bzero(q->data[i], sizeof(uint8_t) * 6144 / 8);
+      }
     }
   }
   if (q->cb_crc) {
     bzero(q->cb_crc, sizeof(bool) * q->max_cb);
   }
+  q->tb_crc = false;
 }
 
 
@@ -159,8 +158,8 @@ int srslte_softbuffer_tx_init(srslte_softbuffer_tx_t *q, uint32_t nof_prb) {
     ret = SRSLTE_ERROR; 
     
     bzero(q, sizeof(srslte_softbuffer_tx_t));
-    
-    ret = srslte_ra_tbs_from_idx(26, nof_prb);
+
+    ret = srslte_ra_tbs_from_idx(33, nof_prb);
     if (ret != SRSLTE_ERROR) {
       q->max_cb =  (uint32_t) ret / (SRSLTE_TCOD_MAX_LEN_CB - 24) + 1; 
       

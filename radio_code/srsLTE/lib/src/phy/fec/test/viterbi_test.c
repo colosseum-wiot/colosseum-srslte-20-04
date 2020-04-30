@@ -1,12 +1,7 @@
-/**
+/*
+ * Copyright 2013-2019 Software Radio Systems Limited
  *
- * \section COPYRIGHT
- *
- * Copyright 2013-2015 Software Radio Systems Limited
- *
- * \section LICENSE
- *
- * This file is part of the srsLTE library.
+ * This file is part of srsLTE.
  *
  * srsLTE is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as
@@ -278,13 +273,14 @@ int main(int argc, char **argv) {
   free(symbols);
   free(llr);
   free(llr_c);
+  free(llr_s);
   free(data_rx);
   free(data_rx2);
   
   if (snr_points == 1) {
     int expected_errors = get_expected_errors(nof_frames, seed, frame_length, tail_biting, ebno_db);
     if (expected_errors == -1) {
-      fprintf(stderr, "Test parameters not defined in test_results.h\n");
+      ERROR("Test parameters not defined in test_results.h\n");
       exit(-1);
     } else {
       printf("errors =%d, expected =%d\n", errors, expected_errors);

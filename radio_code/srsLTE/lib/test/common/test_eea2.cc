@@ -1,12 +1,30 @@
 /*
- * Includes
+ * Copyright 2013-2019 Software Radio Systems Limited
+ *
+ * This file is part of srsLTE.
+ *
+ * srsLTE is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as
+ * published by the Free Software Foundation, either version 3 of
+ * the License, or (at your option) any later version.
+ *
+ * srsLTE is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Affero General Public License for more details.
+ *
+ * A copy of the GNU Affero General Public License can be found in
+ * the LICENSE file in the top-level directory of this distribution
+ * and at http://www.gnu.org/licenses/.
+ *
  */
 
-#include <stdlib.h>
-#include <stdio.h>
 #include <assert.h>
+#include <stdio.h>
+#include <stdlib.h>
 
 #include "srslte/common/liblte_security.h"
+#include "srslte/srslte.h"
 
 /*
  * Prototypes
@@ -440,9 +458,17 @@ void test_set_6()
   uint8_t * out = (uint8_t *) calloc(len_bytes,
       sizeof(uint8_t));
 
+  struct timeval t[3];
+
   // encryption
-  err_lte = liblte_security_encryption_eea2(key, count, bearer,
-      direction, msg, len_bits, out);
+  gettimeofday(&t[1], NULL);
+  for (int i=0;i<100;i++) {
+    err_lte = liblte_security_encryption_eea2(key, count, bearer,
+                                              direction, msg, len_bits, out);
+  }
+  gettimeofday(&t[2], NULL);
+  get_time_interval(t);
+  printf("encryption: %u bits, t=%d us, rate=%.1f Mbps/s\n", len_bits, (int) t[0].tv_usec/100, (float) 100*len_bits/t[0].tv_usec);
   assert(err_lte == LIBLTE_SUCCESS);
 
   // compare cipher text
@@ -450,8 +476,14 @@ void test_set_6()
   assert(err_cmp == 0);
 
   // decryption
-  err_lte = liblte_security_decryption_eea2(key, count, bearer,
-      direction, ct, len_bits, out);
+  gettimeofday(&t[1], NULL);
+  for (int i=0;i<100;i++) {
+    err_lte = liblte_security_decryption_eea2(key, count, bearer,
+                                              direction, ct, len_bits, out);
+  }
+  gettimeofday(&t[2], NULL);
+  get_time_interval(t);
+  printf("decryption: %u bits, t=%d us, rate=%.1f Mbps/s\n", len_bits, (int) t[0].tv_usec/100, (float) 100*len_bits/t[0].tv_usec);
   assert(err_lte == LIBLTE_SUCCESS);
 
   // compare cipher text

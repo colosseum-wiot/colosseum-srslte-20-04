@@ -1,19 +1,14 @@
-/**
+/*
+ * Copyright 2013-2019 Software Radio Systems Limited
  *
- * \section COPYRIGHT
+ * This file is part of srsLTE.
  *
- * Copyright 2013-2015 Software Radio Systems Limited
- *
- * \section LICENSE
- *
- * This file is part of the srsUE library.
- *
- * srsUE is free software: you can redistribute it and/or modify
+ * srsLTE is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as
  * published by the Free Software Foundation, either version 3 of
  * the License, or (at your option) any later version.
  *
- * srsUE is distributed in the hope that it will be useful,
+ * srsLTE is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU Affero General Public License for more details.
@@ -36,15 +31,13 @@ uint32_t PDU1_LEN = 2;
 uint8_t pdu2[] = {0x1C ,0xE1 ,0x06 ,0x80};
 uint32_t PDU2_LEN = 4;
 
-using namespace srsue;
-
 int main(int argc, char **argv) {
   srslte::rlc_umd_pdu_header_t h;
   srslte::byte_buffer_t  b1,b2;
 
   memcpy(b1.msg, &pdu1[0], PDU1_LEN);
   b1.N_bytes = PDU1_LEN;
-  rlc_um_read_data_pdu_header(&b1, srslte::RLC_UMD_SN_SIZE_10_BITS, &h);
+  rlc_um_read_data_pdu_header(&b1, srslte::rlc_umd_sn_size_t::size10bits, &h);
   assert(0x03 == h.fi);
   assert(0    == h.N_li);
   assert(226  == h.sn);
@@ -53,13 +46,13 @@ int main(int argc, char **argv) {
   for(uint32_t i=0;i<b2.N_bytes;i++)
     assert(b2.msg[i] == b1.msg[i]);
 
-  b1.reset();
-  b2.reset();
+  b1.clear();
+  b2.clear();
   memset(&h, 0, sizeof(srslte::rlc_umd_pdu_header_t));
 
   memcpy(b1.msg, &pdu2[0], PDU2_LEN);
   b1.N_bytes = PDU2_LEN;
-  rlc_um_read_data_pdu_header(&b1, srslte::RLC_UMD_SN_SIZE_10_BITS, &h);
+  rlc_um_read_data_pdu_header(&b1, srslte::rlc_umd_sn_size_t::size10bits, &h);
   assert(0x03 == h.fi);
   assert(225  == h.sn);
   assert(1    == h.N_li);

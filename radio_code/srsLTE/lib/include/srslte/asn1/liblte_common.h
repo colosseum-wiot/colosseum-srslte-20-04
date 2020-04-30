@@ -40,8 +40,8 @@
                               INCLUDES
 *******************************************************************************/
 
-#include <stdint.h>
 #include <stddef.h>
+#include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
 
@@ -51,132 +51,69 @@
 
 // FIXME: This was chosen arbitrarily
 #define LIBLTE_ASN1_OID_MAXSUBIDS 128
-#define LIBLTE_MAX_MSG_SIZE_BITS  102048
+
+// Caution these values must match SRSLTE_ ones in common.h
+#define LIBLTE_MAX_MSG_SIZE_BITS 102048
 #define LIBLTE_MAX_MSG_SIZE_BYTES 12756
-#define LIBLTE_MSG_HEADER_OFFSET  1024
+#define LIBLTE_MSG_HEADER_OFFSET 1020
+
+// Macro to make it easier to convert defines into strings
+#define LIBLTE_CASE_STR(code)                                                                                          \
+  case code:                                                                                                           \
+    return #code
 
 /*******************************************************************************
                               TYPEDEFS
 *******************************************************************************/
 
-typedef int8_t    int8;
-typedef uint8_t   uint8;
-typedef int16_t   int16;
-typedef uint16_t  uint16;
-typedef int32_t   int32;
-typedef uint32_t  uint32;
-typedef int64_t   int64;
-typedef uint64_t  uint64;
+typedef int8_t   int8;
+typedef uint8_t  uint8;
+typedef int16_t  int16;
+typedef uint16_t uint16;
+typedef int32_t  int32;
+typedef uint32_t uint32;
+typedef int64_t  int64;
+typedef uint64_t uint64;
 
-typedef enum{
+typedef enum {
   LIBLTE_SUCCESS = 0,
   LIBLTE_ERROR_INVALID_INPUTS,
   LIBLTE_ERROR_ENCODE_FAIL,
   LIBLTE_ERROR_DECODE_FAIL,
   LIBLTE_ERROR_INVALID_CRC,
   LIBLTE_ERROR_N_ITEMS
-}LIBLTE_ERROR_ENUM;
+} LIBLTE_ERROR_ENUM;
 static const char liblte_error_text[LIBLTE_ERROR_N_ITEMS][64] = {
-  "Invalid inputs",
-  "Encode failure",
-  "Decode failure",
+    "Invalid inputs",
+    "Encode failure",
+    "Decode failure",
 };
+
+#define LIBLTE_STRING_LEN 128
 
 typedef void* LIBLTE_ASN1_OPEN_TYPE_STRUCT;
 
 typedef struct {
-   uint32_t numids;                             // number of subidentifiers
-   uint32_t subid[LIBLTE_ASN1_OID_MAXSUBIDS];   // subidentifier values
+  uint32_t numids;                           // number of subidentifiers
+  uint32_t subid[LIBLTE_ASN1_OID_MAXSUBIDS]; // subidentifier values
 } LIBLTE_ASN1_OID_STRUCT;
 
-typedef struct{
-    bool   data_valid;
-    bool   data;
-}LIBLTE_BOOL_MSG_STRUCT;
+typedef struct {
+  bool data_valid;
+  bool data;
+} LIBLTE_BOOL_MSG_STRUCT;
 
-typedef struct{
-    uint32 N_bits;
-    uint8  msg[LIBLTE_MAX_MSG_SIZE_BITS];
-}LIBLTE_SIMPLE_BIT_MSG_STRUCT;
+typedef struct {
+  uint32 N_bits;
+  uint8  header[LIBLTE_MSG_HEADER_OFFSET];
+  uint8  msg[LIBLTE_MAX_MSG_SIZE_BITS];
+} LIBLTE_BIT_MSG_STRUCT __attribute__((aligned(8)));
 
-typedef struct{
-    uint32 N_bytes;
-    uint8  msg[LIBLTE_MAX_MSG_SIZE_BYTES];
-}LIBLTE_SIMPLE_BYTE_MSG_STRUCT;
-
-
-struct LIBLTE_BYTE_MSG_STRUCT{
-    uint32  N_bytes;
-    uint8   buffer[LIBLTE_MAX_MSG_SIZE_BYTES];
-    uint8  *msg;
-
-    LIBLTE_BYTE_MSG_STRUCT():N_bytes(0)
-    {
-      msg = &buffer[LIBLTE_MSG_HEADER_OFFSET];
-    }
-    LIBLTE_BYTE_MSG_STRUCT(const LIBLTE_BYTE_MSG_STRUCT& buf)
-    {
-      N_bytes = buf.N_bytes;
-      memcpy(msg, buf.msg, N_bytes);
-    }
-    LIBLTE_BYTE_MSG_STRUCT & operator= (const LIBLTE_BYTE_MSG_STRUCT & buf)
-    {
-      // avoid self assignment
-      if (&buf == this)
-        return *this;
-      N_bytes = buf.N_bytes;
-      memcpy(msg, buf.msg, N_bytes);
-      return *this;
-    }
-    uint32 get_headroom()
-    {
-      return msg-buffer;
-    }
-    void reset()
-    {
-      N_bytes = 0;
-      msg = &buffer[LIBLTE_MSG_HEADER_OFFSET];
-    }
-};
-
-struct LIBLTE_BIT_MSG_STRUCT{
-    uint32  N_bits;
-    uint8   buffer[LIBLTE_MAX_MSG_SIZE_BITS];
-    uint8  *msg;
-
-    LIBLTE_BIT_MSG_STRUCT():N_bits(0)
-    {
-      msg = &buffer[LIBLTE_MSG_HEADER_OFFSET];
-      while( (uint64_t)(msg) % 8 > 0) {
-        msg++;
-      }
-    }
-    LIBLTE_BIT_MSG_STRUCT(const LIBLTE_BIT_MSG_STRUCT& buf){
-      N_bits = buf.N_bits;
-      memcpy(msg, buf.msg, N_bits);
-    }
-    LIBLTE_BIT_MSG_STRUCT & operator= (const LIBLTE_BIT_MSG_STRUCT & buf){
-      // avoid self assignment
-      if (&buf == this)
-        return *this;
-      N_bits = buf.N_bits;
-      memcpy(msg, buf.msg, N_bits);
-      return *this;
-    }
-    uint32 get_headroom()
-    {
-      return msg-buffer;
-    }
-    void reset()
-    {
-      N_bits = 0;
-      msg = &buffer[LIBLTE_MSG_HEADER_OFFSET];
-      while( (uint64_t)(msg) % 8 > 0) {
-        msg++;
-      }
-    }
-};
-
+typedef struct {
+  uint32 N_bytes;
+  uint8  header[LIBLTE_MSG_HEADER_OFFSET];
+  uint8  msg[LIBLTE_MAX_MSG_SIZE_BYTES];
+} LIBLTE_BYTE_MSG_STRUCT;
 
 /*******************************************************************************
                               DECLARATIONS
@@ -187,54 +124,49 @@ struct LIBLTE_BIT_MSG_STRUCT{
 
     Description: Converts a value to a bit string
 *********************************************************************/
-void liblte_value_2_bits(uint32   value,
-                         uint8  **bits,
-                         uint32   N_bits);
+void liblte_value_2_bits(uint32 value, uint8** bits, uint32 N_bits);
 
 /*********************************************************************
     Name: liblte_bits_2_value
 
     Description: Converts a bit string to a value
 *********************************************************************/
-uint32 liblte_bits_2_value(uint8  **bits,
-                           uint32   N_bits);
+uint32 liblte_bits_2_value(uint8** bits, uint32 N_bits);
 
 /*********************************************************************
     Name: liblte_pack
 
     Description: Pack a bit array into a byte array
 *********************************************************************/
-void liblte_pack(LIBLTE_BIT_MSG_STRUCT  *bits,
-                 LIBLTE_BYTE_MSG_STRUCT *bytes);
+void liblte_pack(LIBLTE_BIT_MSG_STRUCT* bits, LIBLTE_BYTE_MSG_STRUCT* bytes);
 
 /*********************************************************************
     Name: liblte_unpack
 
     Description: Unpack a byte array into a bit array
 *********************************************************************/
-void liblte_unpack(LIBLTE_BYTE_MSG_STRUCT *bytes,
-                   LIBLTE_BIT_MSG_STRUCT  *bits);
+void liblte_unpack(LIBLTE_BYTE_MSG_STRUCT* bytes, LIBLTE_BIT_MSG_STRUCT* bits);
 
 /*********************************************************************
     Name: liblte_pack
 
     Description: Pack a bit array into a byte array
 *********************************************************************/
-void liblte_pack(uint8_t *bits,  uint32_t n_bits, uint8_t *bytes);
+void liblte_pack(uint8_t* bits, uint32_t n_bits, uint8_t* bytes);
 
 /*********************************************************************
     Name: liblte_unpack
 
     Description: Unpack a byte array into a bit array
 *********************************************************************/
-void liblte_unpack(uint8_t *bytes, uint32_t n_bytes, uint8_t *bits);
+void liblte_unpack(uint8_t* bytes, uint32_t n_bytes, uint8_t* bits);
 
 /*********************************************************************
     Name: liblte_align_up
 
     Description: Aligns a pointer to a multibyte boundary
 *********************************************************************/
-void liblte_align_up(uint8_t **ptr, uint32_t align);
+void liblte_align_up(uint8_t** ptr, uint32_t align);
 
 /*********************************************************************
     Name: liblte_align_up_zero
@@ -242,6 +174,6 @@ void liblte_align_up(uint8_t **ptr, uint32_t align);
     Description:  Aligns a pointer to a multibyte boundary and zeros
                   bytes skipped
 *********************************************************************/
-void liblte_align_up_zero(uint8_t **ptr, uint32_t align);
+void liblte_align_up_zero(uint8_t** ptr, uint32_t align);
 
 #endif // SRSLTE_LIBLTE_COMMON_H

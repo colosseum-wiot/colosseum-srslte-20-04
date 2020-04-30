@@ -1,12 +1,7 @@
-/**
+/*
+ * Copyright 2013-2019 Software Radio Systems Limited
  *
- * \section COPYRIGHT
- *
- * Copyright 2013-2015 Software Radio Systems Limited
- *
- * \section LICENSE
- *
- * This file is part of the srsLTE library.
+ * This file is part of srsLTE.
  *
  * srsLTE is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as
@@ -50,14 +45,16 @@ int nof_cb = 1;
 int nof_iterations = MAX_ITERATIONS;
 int test_known_data = 0;
 int test_errors = 0;
-int nof_repetitions = 1; 
+int nof_repetitions = 1;
+
+srslte_tdec_impl_type_t tdec_type;
 
 #define SNR_POINTS      4
 #define SNR_MIN         1.0
 #define SNR_MAX         8.0
 
 void usage(char *prog) {
-  printf("Usage: %s [nlesv]\n", prog);
+  printf("Usage: %s [kcinNledts]\n", prog);
   printf(
       "\t-k Test with known data (ignores frame_length) [Default disabled]\n");
   printf("\t-c nof_cb in parallel [Default %d]\n", nof_cb);
@@ -66,13 +63,14 @@ void usage(char *prog) {
   printf("\t-N nof_repetitions [Default %d]\n", nof_repetitions);
   printf("\t-l frame_length [Default %d]\n", frame_length);
   printf("\t-e ebno in dB [Default scan]\n");
+  printf("\t-d Decoder implementation type: 0: Generic, 1: SSE, 2: SSE-window\n");
   printf("\t-t test: check errors on exit [Default disabled]\n");
   printf("\t-s seed [Default 0=time]\n");
 }
 
 void parse_args(int argc, char **argv) {
   int opt;
-  while ((opt = getopt(argc, argv, "cinNlstvekt")) != -1) {
+  while ((opt = getopt(argc, argv, "kcinNledts")) != -1) {
     switch (opt) {
     case 'c':
       nof_cb = atoi(argv[optind]);
@@ -94,6 +92,9 @@ void parse_args(int argc, char **argv) {
       break;
     case 'l':
       frame_length = atoi(argv[optind]);
+      break;
+    case 'd':
+      tdec_type = (srslte_tdec_impl_type_t) atoi(argv[optind]);
       break;
     case 'e':
       ebno_db = atof(argv[optind]);
@@ -117,7 +118,7 @@ int main(int argc, char **argv) {
   float *llr;
   short *llr_s;
   uint8_t *llr_c;
-  uint8_t *data_tx, *data_rx, *data_rx_bytes[SRSLTE_TDEC_MAX_NPAR], *symbols;
+  uint8_t *data_tx, *data_rx, *data_rx_bytes, *symbols;
   uint32_t i, j;
   float var[SNR_POINTS];
   uint32_t snr_points;
@@ -159,12 +160,10 @@ int main(int argc, char **argv) {
     perror("malloc");
     exit(-1);
   }
-  for (int cb=0;cb<SRSLTE_TDEC_MAX_NPAR;cb++) {
-    data_rx_bytes[cb] = srslte_vec_malloc(frame_length * sizeof(uint8_t));
-    if (!data_rx_bytes[cb]) {
-      perror("malloc");
-      exit(-1);
-    }    
+  data_rx_bytes = srslte_vec_malloc(frame_length * sizeof(uint8_t));
+  if (!data_rx_bytes) {
+    perror("malloc");
+    exit(-1);
   }
 
   symbols = srslte_vec_malloc(coded_length * sizeof(uint8_t));
@@ -189,14 +188,21 @@ int main(int argc, char **argv) {
   }
 
   if (srslte_tcod_init(&tcod, frame_length)) {
-    fprintf(stderr, "Error initiating Turbo coder\n");
+    ERROR("Error initiating Turbo coder\n");
     exit(-1);
   }
 
-  if (srslte_tdec_init(&tdec, frame_length)) {
-    fprintf(stderr, "Error initiating Turbo decoder\n");
+#ifdef HAVE_NEON
+  tdec_type = SRSLTE_TDEC_NEON_WINDOW;
+#else
+ // tdec_type = SRSLTE_TDEC_SSE_WINDOW;
+#endif
+  if (srslte_tdec_init_manual(&tdec, frame_length, tdec_type)) {
+    ERROR("Error initiating Turbo decoder\n");
     exit(-1);
   }
+  
+  srslte_tdec_force_not_sb(&tdec);
 
   float ebno_inc, esno_db;
   ebno_inc = (SNR_MAX - SNR_MIN) / SNR_POINTS;
@@ -244,8 +250,9 @@ int main(int argc, char **argv) {
       for (j=0;j<coded_length;j++) {
         llr_s[j] = (int16_t) (100*llr[j]);
       }
+
       /* decoder */
-      srslte_tdec_reset(&tdec, frame_length);
+      srslte_tdec_new_cb(&tdec, frame_length);
 
       uint32_t t;
       if (nof_iterations == -1) {
@@ -254,35 +261,21 @@ int main(int argc, char **argv) {
         t = nof_iterations;
       }
 
-      int16_t *input[SRSLTE_TDEC_MAX_NPAR];
-      uint8_t *output[SRSLTE_TDEC_MAX_NPAR];
-      
-      for (int n=0;n<SRSLTE_TDEC_MAX_NPAR;n++) {
-        if (n < nof_cb) {
-          input[n] = llr_s;         
-        } else {
-          input[n] = NULL; 
-        }
-        output[n] = data_rx_bytes[n];           
-      }
-
       gettimeofday(&tdata[1], NULL); 
       for (int k=0;k<nof_repetitions;k++) { 
-        srslte_tdec_run_all_par(&tdec, input, output, t, frame_length);        
+        srslte_tdec_run_all(&tdec, llr_s, data_rx_bytes, t, frame_length);
       }
       gettimeofday(&tdata[2], NULL);
       get_time_interval(tdata);
-      mean_usec = (float) mean_usec * 0.9 + (float) (tdata[0].tv_usec/nof_repetitions) * 0.1;
+      mean_usec = (tdata[0].tv_sec*1e6+tdata[0].tv_usec)/nof_repetitions;
       
       frame_cnt++;
       uint32_t errors_this = 0; 
-      for (int cb=0;cb<nof_cb;cb++) {
-        srslte_bit_unpack_vector(data_rx_bytes[cb], data_rx, frame_length);
-        
-        errors_this=srslte_bit_diff(data_tx, data_rx, frame_length);
-        //printf("error[%d]=%d\n", cb, errors_this);
-        errors += errors_this;
-      }
+      srslte_bit_unpack_vector(data_rx_bytes, data_rx, frame_length);
+
+      errors_this=srslte_bit_diff(data_tx, data_rx, frame_length);
+      //printf("error[%d]=%d\n", cb, errors_this);
+      errors += errors_this;
       printf("Eb/No: %2.2f %10d/%d   ", SNR_MIN + i * ebno_inc, frame_cnt, nof_frames);
       printf("BER: %.2e  ", (float) errors / (nof_cb*frame_cnt * frame_length));
       printf("%3.1f Mbps (%6.2f usec)", (float) (nof_cb*frame_length) / mean_usec, mean_usec);
@@ -297,13 +290,16 @@ int main(int argc, char **argv) {
     if (errors) {
       printf("%d Errors\n", errors/nof_cb);
     }
-  }    
+  }
 
-
+  if (data_rx_bytes) {
+    free(data_rx_bytes);
+  }
   free(data_tx);
   free(symbols);
   free(llr);
   free(llr_c);
+  free(llr_s);
   free(data_rx);
 
   srslte_tdec_free(&tdec);

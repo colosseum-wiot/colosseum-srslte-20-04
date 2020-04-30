@@ -1,12 +1,7 @@
-/**
+/*
+ * Copyright 2013-2019 Software Radio Systems Limited
  *
- * \section COPYRIGHT
- *
- * Copyright 2013-2015 Software Radio Systems Limited
- *
- * \section LICENSE
- *
- * This file is part of the srsLTE library.
+ * This file is part of srsLTE.
  *
  * srsLTE is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as
@@ -23,7 +18,6 @@
  * and at http://www.gnu.org/licenses/.
  *
  */
-
 
 #ifndef SRSLTE_OFDM_H
 #define SRSLTE_OFDM_H
@@ -92,7 +86,7 @@ SRSLTE_API int srslte_ofdm_rx_init_mbsfn(srslte_ofdm_t *q,
                                          srslte_cp_t cp_type,
                                          cf_t *in_buffer,
                                          cf_t *out_buffer,
-                                         uint32_t nof_prb);
+                                         uint32_t max_prb);
 
 SRSLTE_API int srslte_ofdm_rx_init(srslte_ofdm_t *q, 
                                srslte_cp_t cp_type, 
