@@ -505,9 +505,10 @@ void mac::rach_detected(uint32_t tti, uint32_t enb_cc_idx, uint32_t preamble_idx
   stack_task_queue.push([this, rnti, tti, enb_cc_idx, preamble_idx, time_adv, rach_tprof_meas]() mutable {
     rach_tprof_meas.defer_stop();
     // Generate RAR data
+    // 05/07/2020 - Leo: set double time_adv to be able to connect in UL
     sched_interface::dl_sched_rar_info_t rar_info = {};
     rar_info.preamble_idx                         = preamble_idx;
-    rar_info.ta_cmd                               = time_adv;
+    rar_info.ta_cmd                               = 2*time_adv;
     rar_info.temp_crnti                           = rnti;
     rar_info.msg3_size                            = 7;
     rar_info.prach_tti                            = tti;

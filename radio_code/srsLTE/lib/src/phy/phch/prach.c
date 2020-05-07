@@ -654,15 +654,17 @@ int srslte_prach_detect_offset(srslte_prach_t* p,
               peak_to_avg[*n_indices] = p->peak_values[j] / corr_ave;
             }
             if (t_offsets) {
-              float corr = 1.8;
-              if (p->peak_offsets[j] > 30) {
-                corr = 1.9;
-              }
-              if (p->peak_offsets[j] > 250) {
-                corr = 1.91;
-              }
-
-              t_offsets[*n_indices] = corr * p->peak_offsets[j] / (DELTA_F_RA * p->N_zc);
+              // 05/07/2020 - Leo: disabling per-carrier TA estimation to fix UE UL connection issue
+              t_offsets[*n_indices] = (float) p->peak_offsets[j] * p->T_seq / p->N_zc;
+              // float corr = 1.8;
+              // if (p->peak_offsets[j] > 30) {
+              //   corr = 1.9;
+              // }
+              // if (p->peak_offsets[j] > 250) {
+              //   corr = 1.91;
+              // }
+              //
+              // t_offsets[*n_indices] = corr * p->peak_offsets[j] / (DELTA_F_RA * p->N_zc);
             }
             (*n_indices)++;
           }
