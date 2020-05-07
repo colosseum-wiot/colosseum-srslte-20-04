@@ -1,5 +1,5 @@
 /*
- * Copyright 2013-2019 Software Radio Systems Limited
+ * Copyright 2013-2020 Software Radio Systems Limited
  *
  * This file is part of srsLTE.
  *
@@ -36,6 +36,7 @@
 #include "srslte/phy/mimo/layermap.h"
 #include "srslte/phy/mimo/precoding.h"
 #include "srslte/phy/modem/demod_soft.h"
+#include "srslte/phy/modem/evm.h"
 #include "srslte/phy/modem/mod.h"
 #include "srslte/phy/phch/dci.h"
 #include "srslte/phy/phch/pdsch_cfg.h"
@@ -45,43 +46,46 @@
 
 typedef struct {
   srslte_sequence_t seq[SRSLTE_MAX_CODEWORDS][SRSLTE_NOF_SF_X_FRAME];
-  uint32_t cell_id;
-  bool sequence_generated;
+  uint32_t          cell_id;
+  bool              sequence_generated;
 } srslte_pdsch_user_t;
 
 /* PDSCH object */
 typedef struct SRSLTE_API {
   srslte_cell_t cell;
-  
+
   uint32_t nof_rx_antennas;
   uint32_t max_re;
 
   uint16_t ue_rnti;
-  bool is_ue;
+  bool     is_ue;
 
   bool llr_is_8bit;
 
   /* buffers */
   // void buffers are shared for tx and rx
-  cf_t *ce[SRSLTE_MAX_PORTS][SRSLTE_MAX_PORTS]; /* Channel estimation (Rx only) */
-  cf_t *symbols[SRSLTE_MAX_PORTS];              /* PDSCH Encoded/Decoded Symbols */
-  cf_t *x[SRSLTE_MAX_LAYERS];                   /* Layer mapped */
-  cf_t *d[SRSLTE_MAX_CODEWORDS];                /* Modulated/Demodulated codewords */
-  void *e[SRSLTE_MAX_CODEWORDS];
+  cf_t* ce[SRSLTE_MAX_PORTS][SRSLTE_MAX_PORTS]; /* Channel estimation (Rx only) */
+  cf_t* symbols[SRSLTE_MAX_PORTS];              /* PDSCH Encoded/Decoded Symbols */
+  cf_t* x[SRSLTE_MAX_LAYERS];                   /* Layer mapped */
+  cf_t* d[SRSLTE_MAX_CODEWORDS];                /* Modulated/Demodulated codewords */
+  void* e[SRSLTE_MAX_CODEWORDS];
 
-  float *csi[SRSLTE_MAX_CODEWORDS];             /* Channel Strengh Indicator */
+  float* csi[SRSLTE_MAX_CODEWORDS]; /* Channel Strengh Indicator */
 
   /* tx & rx objects */
-  srslte_modem_table_t mod[5];
+  srslte_modem_table_t mod[SRSLTE_MOD_NITEMS];
+
+  // EVM buffers, one for each codeword (avoid concurrency issue with coworker)
+  srslte_evm_buffer_t* evm_buffer[SRSLTE_MAX_CODEWORDS];
 
   // This is to generate the scrambling seq for multiple CRNTIs
-  srslte_pdsch_user_t **users;
+  srslte_pdsch_user_t** users;
 
   srslte_sequence_t tmp_seq;
 
   srslte_sch_t dl_sch;
 
-  void *coworker_ptr;
+  void* coworker_ptr;
 
 } srslte_pdsch_t;
 
@@ -89,24 +93,21 @@ typedef struct {
   uint8_t* payload;
   bool     crc;
   float    avg_iterations_block;
+  float    evm;
 } srslte_pdsch_res_t;
 
-SRSLTE_API int srslte_pdsch_init_ue(srslte_pdsch_t *q,
-                                    uint32_t max_prb,
-                                    uint32_t nof_rx_antennas);
+SRSLTE_API int srslte_pdsch_init_ue(srslte_pdsch_t* q, uint32_t max_prb, uint32_t nof_rx_antennas);
 
-SRSLTE_API int srslte_pdsch_init_enb(srslte_pdsch_t *q,
-                                     uint32_t max_prb);
+SRSLTE_API int srslte_pdsch_init_enb(srslte_pdsch_t* q, uint32_t max_prb);
 
-SRSLTE_API void srslte_pdsch_free(srslte_pdsch_t *q);
+SRSLTE_API void srslte_pdsch_free(srslte_pdsch_t* q);
 
 /* These functions modify the state of the object and may take some time */
 SRSLTE_API int srslte_pdsch_enable_coworker(srslte_pdsch_t* q);
 
 SRSLTE_API int srslte_pdsch_set_cell(srslte_pdsch_t* q, srslte_cell_t cell);
 
-SRSLTE_API int srslte_pdsch_set_rnti(srslte_pdsch_t *q,
-                                     uint16_t rnti);
+SRSLTE_API int srslte_pdsch_set_rnti(srslte_pdsch_t* q, uint16_t rnti);
 
 SRSLTE_API void srslte_pdsch_free_rnti(srslte_pdsch_t* q, uint16_t rnti);
 

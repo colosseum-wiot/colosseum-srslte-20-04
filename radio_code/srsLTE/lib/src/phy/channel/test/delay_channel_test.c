@@ -1,5 +1,5 @@
 /*
- * Copyright 2013-2019 Software Radio Systems Limited
+ * Copyright 2013-2020 Software Radio Systems Limited
  *
  * This file is part of srsLTE.
  *
@@ -27,12 +27,12 @@
 
 static srslte_channel_delay_t delay = {};
 
-static uint32_t delay_min_us     = 10;
-static uint32_t delay_max_us     = 3333;
+static uint32_t delay_min_us      = 10;
+static uint32_t delay_max_us      = 3333;
 static float    delay_period_s    = 1;
 static float    delay_init_time_s = 0;
-static uint32_t srate_hz         = 1920000;
-static uint32_t sim_time_periods = 1;
+static uint32_t srate_hz          = 1920000;
+static uint32_t sim_time_periods  = 1;
 
 #define INPUT_TYPE 0 /* 0: Dirac Delta; Otherwise: Random*/
 
@@ -87,8 +87,8 @@ int main(int argc, char** argv)
 
   // Initialise buffers
   uint32_t size = srate_hz / 1000;
-  input_buffer  = srslte_vec_malloc(sizeof(cf_t) * size);
-  output_buffer = srslte_vec_malloc(sizeof(cf_t) * size);
+  input_buffer  = srslte_vec_cf_malloc(size);
+  output_buffer = srslte_vec_cf_malloc(size);
   if (!input_buffer || !output_buffer) {
     fprintf(stderr, "Error: Allocating memory\n");
     ret = SRSLTE_ERROR;

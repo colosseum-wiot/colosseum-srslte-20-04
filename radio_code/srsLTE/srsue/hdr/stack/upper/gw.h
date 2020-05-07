@@ -1,5 +1,5 @@
 /*
- * Copyright 2013-2019 Software Radio Systems Limited
+ * Copyright 2013-2020 Software Radio Systems Limited
  *
  * This file is part of srsLTE.
  *
@@ -31,7 +31,6 @@
 #include "srslte/common/threads.h"
 #include "srslte/interfaces/ue_interfaces.h"
 #include "tft_packet_filter.h"
-#include <mutex>
 #include <net/if.h>
 
 namespace srsue {
@@ -41,18 +40,19 @@ struct gw_args_t {
     std::string gw_level;
     int         gw_hex_limit;
   } log;
+  std::string netns;
   std::string tun_dev_name;
   std::string tun_dev_netmask;
 };
 
-class gw : public gw_interface_stack, public thread
+class gw : public gw_interface_stack, public srslte::thread
 {
 public:
   gw();
   int  init(const gw_args_t& args_, srslte::logger* logger_, stack_interface_gw* stack);
   void stop();
 
-  void get_metrics(gw_metrics_t &m);
+  void get_metrics(gw_metrics_t& m);
 
   // PDCP interface
   void write_pdu(uint32_t lcid, srslte::unique_byte_buffer_t pdu);
@@ -63,6 +63,7 @@ public:
   int apply_traffic_flow_template(const uint8_t&                                 eps_bearer_id,
                                   const uint8_t&                                 lcid,
                                   const LIBLTE_MME_TRAFFIC_FLOW_TEMPLATE_STRUCT* tft);
+  void set_test_loop_mode(const test_loop_mode_state_t mode, const uint32_t ip_pdu_delay_ms);
 
   // RRC interface
   void add_mch_port(uint32_t lcid, uint32_t port);
@@ -70,28 +71,29 @@ public:
 private:
   static const int GW_THREAD_PRIO = 7;
 
-  stack_interface_gw*       stack;
-  srslte::byte_buffer_pool* pool;
-  srslte::logger*           logger;
+  stack_interface_gw*       stack  = nullptr;
+  srslte::byte_buffer_pool* pool   = nullptr;
+  srslte::logger*           logger = nullptr;
 
-  gw_args_t args;
+  gw_args_t args = {};
 
-  bool                running;
-  bool                run_enable;
-  int32_t             tun_fd;
-  struct ifreq        ifr;
-  int32_t             sock;
-  bool                if_up;
-  uint32_t            default_lcid = 0;
+  bool         running      = false;
+  bool         run_enable   = false;
+  int32_t      netns_fd     = 0;
+  int32_t      tun_fd       = 0;
+  struct ifreq ifr          = {};
+  int32_t      sock         = 0;
+  bool         if_up        = false;
+  uint32_t     default_lcid = 0;
 
   srslte::log_filter log;
 
-  uint32_t            current_ip_addr;
-  uint8_t             current_if_id[8];
+  uint32_t current_ip_addr = 0;
+  uint8_t  current_if_id[8];
 
-  long                ul_tput_bytes;
-  long                dl_tput_bytes;
-  struct timeval      metrics_time[3];
+  long           ul_tput_bytes = 0;
+  long           dl_tput_bytes = 0;
+  struct timeval metrics_time[3];
 
   void run_thread();
   int  init_if(char* err_str);
@@ -101,19 +103,14 @@ private:
   void del_ipv6_addr(struct in6_addr* in6p);
 
   // MBSFN
-  int      mbsfn_sock_fd;                   // Sink UDP socket file descriptor
-  struct   sockaddr_in mbsfn_sock_addr;     // Target address
-  uint32_t mbsfn_ports[SRSLTE_N_MCH_LCIDS]; // Target ports for MBSFN data
+  int                mbsfn_sock_fd                   = 0;  // Sink UDP socket file descriptor
+  struct sockaddr_in mbsfn_sock_addr                 = {}; // Target address
+  uint32_t           mbsfn_ports[SRSLTE_N_MCH_LCIDS] = {}; // Target ports for MBSFN data
 
   // TFT
-  std::mutex                                      tft_mutex;
-  typedef std::map<uint16_t, tft_packet_filter_t> tft_filter_map_t;
-  tft_filter_map_t                                tft_filter_map;
-
-  uint8_t check_tft_filter_match(const srslte::unique_byte_buffer_t& pdu);
+  tft_pdu_matcher    tft_matcher;
 };
 
 } // namespace srsue
-
 
 #endif // SRSUE_GW_H

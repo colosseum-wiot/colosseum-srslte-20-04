@@ -1,5 +1,5 @@
 /*
- * Copyright 2013-2019 Software Radio Systems Limited
+ * Copyright 2013-2020 Software Radio Systems Limited
  *
  * This file is part of srsLTE.
  *
@@ -22,8 +22,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <unistd.h>
 #include <sys/time.h>
+#include <unistd.h>
 
 #include "srslte/srslte.h"
 
@@ -54,9 +54,10 @@ static uint32_t    pmi                          = 0;
 static char*       input_file                   = NULL;
 static int         M                            = 1;
 static bool        enable_256qam                = false;
-static bool use_8_bit = false;
+static bool        use_8_bit                    = false;
 
-void usage(char *prog) {
+void usage(char* prog)
+{
   printf("Usage: %s [fmMbcsrtRFpnwav] \n", prog);
   printf("\t-f read signal from file [Default generate it with pdsch_encode()]\n");
   printf("\t-m MCS [Default %d]\n", mcs[0]);
@@ -79,76 +80,80 @@ void usage(char *prog) {
   printf("\t-q Enable/Disable 256QAM modulation (default %s)\n", enable_256qam ? "enabled" : "disabled");
 }
 
-void parse_args(int argc, char **argv) {
+void parse_args(int argc, char** argv)
+{
   int opt;
   while ((opt = getopt(argc, argv, "fmMcsbrtRFpnqawvXxj")) != -1) {
-    switch(opt) {
-    case 'f':
-      input_file = argv[optind];
-      break;
-    case 'm':
-      mcs[0] = (uint32_t) atoi(argv[optind]);
-      break;
-    case 'b':
-      use_8_bit = true;
-      break;
-    case 'M':
-      mcs[1] = (uint32_t) atoi(argv[optind]);
-      break;
-    case 's':
-      subframe = atoi(argv[optind]);
-      break;
-    case 'X':
-      M = (uint32_t) atoi(argv[optind]);
-      break;
-    case 'r':
-      rv_idx[0] = (uint32_t) atoi(argv[optind]);
-      break;
-    case 't':
-      rv_idx[1] = (uint32_t) atoi(argv[optind]);
-      break;
-    case 'R':
-      rnti = atoi(argv[optind]);
-      break;
-    case 'F':
-      cfi = atoi(argv[optind]);
-      break;
-    case 'x':
-      tm = (srslte_tm_t)atoi(argv[optind]) - 1;
-      break;
-    case 'p':
-      pmi = (uint32_t) atoi(argv[optind]);
-      break;
-    case 'n':
-      cell.nof_prb = atoi(argv[optind]);
-      break;
-    case 'c':
-      cell.id = atoi(argv[optind]);
-      break;
-    case 'a':
-      nof_rx_antennas = (uint32_t) atoi(argv[optind]);
-      break;
-    case 'w':
-      tb_cw_swap = true;
-      break;
-    case 'j':
-      enable_coworker = true;
-      break;
-    case 'v':
-      srslte_verbose++;
-      break;
-    case 'q':
-      enable_256qam ^= true;
-      break;
-    default:
-      usage(argv[0]);
-      exit(-1);
+    switch (opt) {
+      case 'f':
+        input_file = argv[optind];
+        break;
+      case 'm':
+        mcs[0] = (uint32_t)strtol(argv[optind], NULL, 10);
+        break;
+      case 'b':
+        use_8_bit = true;
+        break;
+      case 'M':
+        mcs[1] = (uint32_t)strtol(argv[optind], NULL, 10);
+        break;
+      case 's':
+        subframe = (uint32_t)strtol(argv[optind], NULL, 10);
+        break;
+      case 'X':
+        M = (int)strtol(argv[optind], NULL, 10);
+        break;
+      case 'r':
+        rv_idx[0] = (int)strtol(argv[optind], NULL, 10);
+        break;
+      case 't':
+        rv_idx[1] = (int)strtol(argv[optind], NULL, 10);
+        break;
+      case 'R':
+        rnti = (uint16_t)strtol(argv[optind], NULL, 10);
+        break;
+      case 'F':
+        cfi = (uint32_t)strtol(argv[optind], NULL, 10);
+        break;
+      case 'x':
+        tm = (srslte_tm_t)(strtol(argv[optind], NULL, 10) - 1);
+        break;
+      case 'p':
+        pmi = (uint32_t)strtol(argv[optind], NULL, 10);
+        break;
+      case 'n':
+        cell.nof_prb = (uint32_t)strtol(argv[optind], NULL, 10);
+        break;
+      case 'c':
+        cell.id = (uint32_t)strtol(argv[optind], NULL, 10);
+        break;
+      case 'a':
+        nof_rx_antennas = (uint32_t)strtol(argv[optind], NULL, 10);
+        break;
+      case 'w':
+        tb_cw_swap = true;
+        break;
+      case 'j':
+        enable_coworker = true;
+        break;
+      case 'v':
+        srslte_verbose++;
+        break;
+      case 'q':
+        enable_256qam ^= true;
+        break;
+      default:
+        usage(argv[0]);
+        exit(-1);
     }
   }
 }
 
-static int check_softbits(
-    srslte_pdsch_t* pdsch_enb, srslte_pdsch_t* pdsch_ue, srslte_pdsch_cfg_t* pdsch_cfg, uint32_t sf_idx, int tb)
+static int check_softbits(srslte_pdsch_t*     pdsch_enb,
+                          srslte_pdsch_t*     pdsch_ue,
+                          srslte_pdsch_cfg_t* pdsch_cfg,
+                          uint32_t            sf_idx,
+                          int                 tb)
 {
   int ret = SRSLTE_SUCCESS;
 
@@ -181,11 +186,12 @@ static int check_softbits(
   return ret;
 }
 
-int main(int argc, char **argv) {
-  int ret = -1;
+int main(int argc, char** argv)
+{
+  int                     ret  = -1;
   struct timeval          t[3] = {};
-  srslte_softbuffer_tx_t *softbuffers_tx[SRSLTE_MAX_CODEWORDS];
-  bool acks[SRSLTE_MAX_CODEWORDS] = {false};
+  srslte_softbuffer_tx_t* softbuffers_tx[SRSLTE_MAX_CODEWORDS];
+  bool                    acks[SRSLTE_MAX_CODEWORDS] = {false};
 
   uint8_t*                data_tx[SRSLTE_MAX_CODEWORDS] = {NULL};
   uint8_t*                data_rx[SRSLTE_MAX_CODEWORDS] = {NULL};
@@ -283,7 +289,7 @@ int main(int argc, char **argv) {
 
   /* init memory */
   for (uint32_t i = 0; i < SRSLTE_MAX_PORTS; i++) {
-    rx_slot_symbols[i] = srslte_vec_malloc(sizeof(cf_t) * SRSLTE_NOF_RE(cell));
+    rx_slot_symbols[i] = srslte_vec_cf_malloc(SRSLTE_NOF_RE(cell));
     if (!rx_slot_symbols[i]) {
       perror("srslte_vec_malloc");
       goto quit;
@@ -300,14 +306,14 @@ int main(int argc, char **argv) {
 
   for (uint32_t i = 0; i < SRSLTE_MAX_TB; i++) {
     if (pdsch_cfg.grant.tb[i].enabled) {
-      data_tx[i] = srslte_vec_malloc(sizeof(uint8_t) * pdsch_cfg.grant.tb[i].tbs);
+      data_tx[i] = srslte_vec_u8_malloc(pdsch_cfg.grant.tb[i].tbs);
       if (!data_tx[i]) {
         perror("srslte_vec_malloc");
         goto quit;
       }
       bzero(data_tx[i], sizeof(uint8_t) * pdsch_cfg.grant.tb[i].tbs);
 
-      data_rx[i] = srslte_vec_malloc(sizeof(uint8_t) * pdsch_cfg.grant.tb[i].tbs);
+      data_rx[i] = srslte_vec_u8_malloc(pdsch_cfg.grant.tb[i].tbs);
       if (!data_rx[i]) {
         perror("srslte_vec_malloc");
         goto quit;
@@ -329,7 +335,7 @@ int main(int argc, char **argv) {
     goto quit;
   }
 
-  pdsch_rx.llr_is_8bit = use_8_bit;
+  pdsch_rx.llr_is_8bit        = use_8_bit;
   pdsch_rx.dl_sch.llr_is_8bit = use_8_bit;
 
   srslte_pdsch_set_rnti(&pdsch_rx, rnti);
@@ -397,7 +403,7 @@ int main(int argc, char **argv) {
     for (int tb = 0; tb < SRSLTE_MAX_CODEWORDS; tb++) {
       if (pdsch_cfg.grant.tb[tb].enabled) {
         for (int byte = 0; byte < pdsch_cfg.grant.tb[tb].tbs / 8; byte++) {
-          data_tx[tb][byte] = (uint8_t) (rand() % 256);
+          data_tx[tb][byte] = (uint8_t)(rand() % 256);
         }
       }
     }
@@ -582,6 +588,5 @@ quit:
   } else {
     printf("Ok\n");
   }
-  srslte_dft_exit();
   exit(ret);
 }

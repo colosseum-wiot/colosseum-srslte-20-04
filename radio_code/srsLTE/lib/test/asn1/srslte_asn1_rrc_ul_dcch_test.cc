@@ -1,5 +1,5 @@
 /*
- * Copyright 2013-2019 Software Radio Systems Limited
+ * Copyright 2013-2020 Software Radio Systems Limited
  *
  * This file is part of srsLTE.
  *
@@ -81,7 +81,7 @@ int rrc_ue_cap_info_test(srslte::mac_pcap* pcap)
   cap.feature_group_inds_present = true;
   cap.feature_group_inds.from_number(args.feature_group);
 
-  uint8_t       buf[64];
+  uint8_t buf[64];
   bzero(buf, sizeof(buf));
   asn1::bit_ref bref(buf, sizeof(buf));
   cap.pack(bref);

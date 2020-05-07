@@ -1,5 +1,5 @@
 /*
- * Copyright 2013-2019 Software Radio Systems Limited
+ * Copyright 2013-2020 Software Radio Systems Limited
  *
  * This file is part of srsLTE.
  *
@@ -26,12 +26,22 @@
 
 namespace srslte {
 
-struct rlc_metrics_t
-{
-  float dl_tput_mbps[SRSLTE_N_RADIO_BEARERS];
-  float ul_tput_mbps[SRSLTE_N_RADIO_BEARERS];
-  float dl_tput_mrb_mbps[SRSLTE_N_MCH_LCIDS];
-};
+typedef struct {
+  uint32_t num_tx_sdus;
+  uint32_t num_rx_sdus;
+  uint32_t num_tx_pdus;
+  uint32_t num_rx_pdus;
+  uint64_t num_tx_bytes;
+  uint64_t num_rx_bytes;
+
+  uint32_t num_lost_pdus;
+  uint32_t num_dropped_sdus;
+} rlc_bearer_metrics_t;
+
+typedef struct {
+  rlc_bearer_metrics_t bearer[SRSLTE_N_RADIO_BEARERS];
+  rlc_bearer_metrics_t mrb_bearer[SRSLTE_N_MCH_LCIDS];
+} rlc_metrics_t;
 
 } // namespace srslte
 

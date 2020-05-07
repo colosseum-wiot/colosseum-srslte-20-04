@@ -1,5 +1,5 @@
 /*
- * Copyright 2013-2019 Software Radio Systems Limited
+ * Copyright 2013-2020 Software Radio Systems Limited
  *
  * This file is part of srsLTE.
  *
@@ -22,19 +22,22 @@
 #ifndef SRSUE_PHY_METRICS_H
 #define SRSUE_PHY_METRICS_H
 
-#include "srslte/phy/common/phy_common.h"
+#include "srslte/srslte.h"
 
 namespace srsue {
 
-struct sync_metrics_t
-{
+struct info_metrics_t {
+  uint32_t pci;
+  uint32_t dl_earfcn;
+};
+
+struct sync_metrics_t {
   float ta_us;
   float cfo;
   float sfo;
 };
 
-struct dl_metrics_t
-{
+struct dl_metrics_t {
   float n;
   float sinr;
   float rsrp;
@@ -47,14 +50,13 @@ struct dl_metrics_t
   float sync_err;
 };
 
-struct ul_metrics_t
-{
+struct ul_metrics_t {
   float mcs;
   float power;
 };
 
-struct phy_metrics_t
-{
+struct phy_metrics_t {
+  info_metrics_t info[SRSLTE_MAX_CARRIERS];
   sync_metrics_t sync[SRSLTE_MAX_CARRIERS];
   dl_metrics_t   dl[SRSLTE_MAX_CARRIERS];
   ul_metrics_t   ul[SRSLTE_MAX_CARRIERS];

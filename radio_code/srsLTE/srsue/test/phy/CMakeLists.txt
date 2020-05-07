@@ -1,5 +1,5 @@
 #
-# Copyright 2013-2019 Software Radio Systems Limited
+# Copyright 2013-2020 Software Radio Systems Limited
 #
 # This file is part of srsLTE
 #
@@ -29,6 +29,22 @@ link_directories(
         ${SEC_LIBRARY_DIRS}
 )
 
+add_executable(ue_phy_test ue_phy_test.cc)
+target_link_libraries(ue_phy_test
+        srsue_phy
+        srsue_stack
+        srsue_upper
+        srsue_mac
+        srsue_rrc
+        srslte_common
+        srslte_phy
+        srslte_radio
+        srslte_upper
+        rrc_asn1
+        ${CMAKE_THREAD_LIBS_INIT}
+        ${Boost_LIBRARIES})
+#add_test(ue_phy_test ue_phy_test)
+
 add_executable(scell_search_test scell_search_test.cc)
 target_link_libraries(scell_search_test
         srsue_phy
@@ -43,4 +59,4 @@ target_link_libraries(scell_search_test
         rrc_asn1
         ${CMAKE_THREAD_LIBS_INIT}
         ${Boost_LIBRARIES})
-add_test(scell_search_test scell_search_test --duration=1 --phy_lib_log_level=0 --intra_meas_log_level=none --nof_enb=2 --cell.nof_prb=25)
+add_test(scell_search_test scell_search_test --duration=5 --cell.nof_prb=6 --active_cell_list=2,3,4,5,6 --simulation_cell_list=1,2,3,4,5,6 --channel_period_s=30 --channel.hst.fd=750 --channel.delay_max=10000)

@@ -1,5 +1,5 @@
 /*
- * Copyright 2013-2019 Software Radio Systems Limited
+ * Copyright 2013-2020 Software Radio Systems Limited
  *
  * This file is part of srsLTE.
  *
@@ -18,32 +18,34 @@
  * and at http://www.gnu.org/licenses/.
  *
  */
+#ifndef SRSLTE_LTE_TABLES_H_
+#define SRSLTE_LTE_TABLES_H_
 
-#define BPSK_LEVEL      1/sqrt(2)
+#include <srslte/config.h>
 
-#define QPSK_LEVEL      1/sqrt(2)
+#define BPSK_LEVEL M_SQRT1_2
 
-#define QAM16_LEVEL_1  1/sqrt(10)
-#define QAM16_LEVEL_2  3/sqrt(10)
+#define QPSK_LEVEL M_SQRT1_2
 
-#define QAM64_LEVEL_1  1/sqrt(42)
-#define QAM64_LEVEL_2  3/sqrt(42)
-#define QAM64_LEVEL_3  5/sqrt(42)
-#define QAM64_LEVEL_4  7/sqrt(42)
+#define QAM16_LEVEL_1 (1.0f / sqrtf(10.0f))
+#define QAM16_LEVEL_2 (3.0f / sqrtf(10.0f))
 
-/* HARD DEMODULATION Thresholds, necessary for obtaining the zone of received symbol for optimized LLR approx implementation */
-#define QAM16_THRESHOLD         2/sqrt(10)
-#define QAM64_THRESHOLD_1       2/sqrt(42)
-#define QAM64_THRESHOLD_2       4/sqrt(42)
-#define QAM64_THRESHOLD_3       6/sqrt(42)
+#define QAM64_LEVEL_1 (1.0f / sqrtf(42.0f))
+#define QAM64_LEVEL_2 (3.0f / sqrtf(42.0f))
+#define QAM64_LEVEL_3 (5.0f / sqrtf(42.0f))
+#define QAM64_LEVEL_4 (7.0f / sqrtf(42.0f))
+
+/* HARD DEMODULATION Thresholds, necessary for obtaining the zone of received symbol for optimized LLR approx
+ * implementation */
+#define QAM16_THRESHOLD (2.0f / sqrtf(10.0f))
+#define QAM64_THRESHOLD_1 (2.0f / sqrtf(42.0f))
+#define QAM64_THRESHOLD_2 (4.0f / sqrtf(42.0f))
+#define QAM64_THRESHOLD_3 (6.0f / sqrtf(42.0f))
 //=========================================//
 
-#define QAM64_LEVEL_x  2/sqrt(42)
+#define QAM64_LEVEL_x 2 / sqrtf(42)
 /* this is not an QAM64 level, but, rather, an auxiliary value that can be used for computing the
  * symbol from the bit sequence */
-
-
-
 
 void set_BPSKtable(cf_t* table);
 
@@ -54,3 +56,5 @@ void set_16QAMtable(cf_t* table);
 void set_64QAMtable(cf_t* table);
 
 void set_256QAMtable(cf_t* table);
+
+#endif /* SRSLTE_LTE_TABLES_H_ */

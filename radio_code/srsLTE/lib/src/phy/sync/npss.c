@@ -1,5 +1,5 @@
 /*
- * Copyright 2013-2019 Software Radio Systems Limited
+ * Copyright 2013-2020 Software Radio Systems Limited
  *
  * This file is part of srsLTE.
  *
@@ -61,27 +61,27 @@ int srslte_npss_synch_init(srslte_npss_synch_t* q, uint32_t frame_size, uint32_t
 
     uint32_t buffer_size = SRSLTE_NPSS_CORR_FILTER_LEN + frame_size + 1;
 
-    q->tmp_input = srslte_vec_malloc(buffer_size * sizeof(cf_t));
+    q->tmp_input = srslte_vec_cf_malloc(buffer_size);
     if (!q->tmp_input) {
       PRINT_ERR("Error allocating memory\n");
       goto clean_and_exit;
     }
     memset(q->tmp_input, 0, buffer_size * sizeof(cf_t));
 
-    q->conv_output = srslte_vec_malloc(buffer_size * sizeof(cf_t));
+    q->conv_output = srslte_vec_cf_malloc(buffer_size);
     if (!q->conv_output) {
       fprintf(stderr, "Error allocating memory\n");
       goto clean_and_exit;
     }
     memset(q->conv_output, 0, sizeof(cf_t) * buffer_size);
-    q->conv_output_avg = srslte_vec_malloc(buffer_size * sizeof(float));
+    q->conv_output_avg = srslte_vec_f_malloc(buffer_size);
     if (!q->conv_output_avg) {
       fprintf(stderr, "Error allocating memory\n");
       goto clean_and_exit;
     }
     memset(q->conv_output_avg, 0, sizeof(float) * buffer_size);
 #ifdef SRSLTE_NPSS_ACCUMULATE_ABS
-    q->conv_output_abs = srslte_vec_malloc(buffer_size * sizeof(float));
+    q->conv_output_abs = srslte_vec_f_malloc(buffer_size);
     if (!q->conv_output_abs) {
       fprintf(stderr, "Error allocating memory\n");
       goto clean_and_exit;
@@ -89,7 +89,7 @@ int srslte_npss_synch_init(srslte_npss_synch_t* q, uint32_t frame_size, uint32_t
     memset(q->conv_output_abs, 0, sizeof(float) * buffer_size);
 #endif
 
-    q->npss_signal_time = srslte_vec_malloc(buffer_size * sizeof(cf_t));
+    q->npss_signal_time = srslte_vec_cf_malloc(buffer_size);
     if (!q->npss_signal_time) {
       fprintf(stderr, "Error allocating memory\n");
       goto clean_and_exit;
@@ -422,8 +422,11 @@ int srslte_npss_generate(cf_t* signal)
 
 /** 36.211 10.3 section 6.11.1.2
  */
-void srslte_npss_put_subframe(
-    srslte_npss_synch_t* q, cf_t* npss_signal, cf_t* sf, const uint32_t nof_prb, const uint32_t nbiot_prb_offset)
+void srslte_npss_put_subframe(srslte_npss_synch_t* q,
+                              cf_t*                npss_signal,
+                              cf_t*                sf,
+                              const uint32_t       nof_prb,
+                              const uint32_t       nbiot_prb_offset)
 {
   // skip first 3 OFDM symbols over all PRBs completely
   uint32_t k = 3 * nof_prb * SRSLTE_NRE + nbiot_prb_offset * SRSLTE_NRE;

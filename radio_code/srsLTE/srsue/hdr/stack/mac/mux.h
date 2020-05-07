@@ -1,5 +1,5 @@
 /*
- * Copyright 2013-2019 Software Radio Systems Limited
+ * Copyright 2013-2020 Software Radio Systems Limited
  *
  * This file is part of srsLTE.
  *
@@ -30,12 +30,11 @@
 #include "proc_phr.h"
 #include "srslte/common/common.h"
 #include "srslte/common/log.h"
-#include "srslte/common/pdu.h"
 #include "srslte/interfaces/ue_interfaces.h"
+#include "srslte/mac/pdu.h"
 #include <mutex>
 
-/* Logical Channel Multiplexing and Prioritization + Msg3 Buffer */   
-
+/* Logical Channel Multiplexing and Prioritization + Msg3 Buffer */
 
 typedef struct {
   uint8_t  lcid;
@@ -50,28 +49,28 @@ typedef struct {
 } logical_channel_config_t;
 
 namespace srsue {
-  
+
 class mux
 {
 public:
-  mux(srslte::log* log_);
+  mux(srslte::log_ref log_);
   ~mux(){};
-  void     reset();
-  void     init(rlc_interface_mac* rlc, bsr_interface_mux* bsr_procedure, phr_proc* phr_procedure_);
+  void reset();
+  void init(rlc_interface_mac* rlc, bsr_interface_mux* bsr_procedure, phr_proc* phr_procedure_);
 
-  void step(const uint32_t tti);
+  void step();
 
-  bool     is_pending_any_sdu();
-  bool     is_pending_sdu(uint32_t lcid);
+  bool is_pending_any_sdu();
+  bool is_pending_sdu(uint32_t lcid);
 
   uint8_t* pdu_get(srslte::byte_buffer_t* payload, uint32_t pdu_sz);
   uint8_t* msg3_get(srslte::byte_buffer_t* payload, uint32_t pdu_sz);
 
-  void     msg3_flush();
-  bool     msg3_is_transmitted();
-  void     msg3_prepare();
-  bool     msg3_is_pending();
-  bool     msg3_is_empty();
+  void msg3_flush();
+  bool msg3_is_transmitted();
+  void msg3_prepare();
+  bool msg3_is_pending();
+  bool msg3_is_empty();
 
   void append_crnti_ce_next_tx(uint16_t crnti);
 
@@ -80,10 +79,10 @@ public:
   void print_logical_channel_state(const std::string& info);
 
 private:
-  bool     has_logical_channel(const uint32_t& lcid);
-  bool     pdu_move_to_msg3(uint32_t pdu_sz);
-  bool     allocate_sdu(uint32_t lcid, srslte::sch_pdu *pdu, int max_sdu_sz);
-  bool     sched_sdu(logical_channel_config_t* ch, int* sdu_space, int max_sdu_sz);
+  bool has_logical_channel(const uint32_t& lcid);
+  bool pdu_move_to_msg3(uint32_t pdu_sz);
+  bool allocate_sdu(uint32_t lcid, srslte::sch_pdu* pdu, int max_sdu_sz);
+  bool sched_sdu(logical_channel_config_t* ch, int* sdu_space, int max_sdu_sz);
 
   const static int MAX_NOF_SUBHEADERS = 20;
 
@@ -92,7 +91,7 @@ private:
   // Mutex for exclusive access
   std::mutex mutex;
 
-  srslte::log*       log_h            = nullptr;
+  srslte::log_ref    log_h;
   rlc_interface_mac* rlc              = nullptr;
   bsr_interface_mux* bsr_procedure    = nullptr;
   phr_proc*          phr_procedure    = nullptr;
@@ -112,4 +111,3 @@ private:
 } // namespace srsue
 
 #endif // SRSUE_MUX_H
-

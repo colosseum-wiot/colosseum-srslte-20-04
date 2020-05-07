@@ -1,5 +1,5 @@
 /*
- * Copyright 2013-2019 Software Radio Systems Limited
+ * Copyright 2013-2020 Software Radio Systems Limited
  *
  * This file is part of srsLTE.
  *
@@ -44,9 +44,9 @@ typedef struct {
 
 typedef struct {
   srslte::rf_metrics_t rf;
-  phy_metrics_t   phy;
-  gw_metrics_t    gw;
-  stack_metrics_t stack;
+  phy_metrics_t        phy;
+  gw_metrics_t         gw;
+  stack_metrics_t      stack;
 } ue_metrics_t;
 
 // UE interface

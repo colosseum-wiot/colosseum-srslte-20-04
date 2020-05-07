@@ -1,5 +1,5 @@
 /*
- * Copyright 2013-2019 Software Radio Systems Limited
+ * Copyright 2013-2020 Software Radio Systems Limited
  *
  * This file is part of srsLTE.
  *
@@ -39,7 +39,7 @@ tft_packet_filter_t::tft_packet_filter_t(uint8_t                                
 {
   int idx = 0;
   while (idx < tft.filter_size) {
-    uint8_t filter_type = tft.filter[idx];  
+    uint8_t filter_type = tft.filter[idx];
     idx++;
     switch (filter_type) {
       // IPv4
@@ -53,7 +53,7 @@ tft_packet_filter_t::tft_packet_filter_t(uint8_t                                
         memcpy(&ipv4_remote_addr, &tft.filter[idx], IPV4_ADDR_SIZE);
         idx += IPV4_ADDR_SIZE;
         break;
-      //IPv6
+      // IPv6
       case IPV6_REMOTE_ADDR_TYPE:
         break;
       case IPV6_REMOTE_ADDR_LENGTH_TYPE:
@@ -82,11 +82,11 @@ tft_packet_filter_t::tft_packet_filter_t(uint8_t                                
       case TYPE_OF_SERVICE_TYPE:
         active_filters = TYPE_OF_SERVICE_FLAG;
         memcpy(&type_of_service, &tft.filter[idx], 1);
-        idx += 1; 
+        idx += 1;
         memcpy(&type_of_service_mask, &tft.filter[idx], 1);
-        idx += 1; 
+        idx += 1;
         break;
-      //Flow label
+      // Flow label
       case FLOW_LABEL_TYPE:
         break;
       // IPsec security parameter
@@ -222,7 +222,7 @@ bool tft_packet_filter_t::match_port(const srslte::unique_byte_buffer_t& pdu)
 {
   struct iphdr*   ip_pkt  = (struct iphdr*)pdu->msg;
   struct ipv6hdr* ip6_pkt = (struct ipv6hdr*)pdu->msg;
-  struct udphdr* udp_pkt;
+  struct udphdr*  udp_pkt;
 
   if (ip_pkt->version == 4) {
     switch (ip_pkt->protocol) {
@@ -247,4 +247,49 @@ bool tft_packet_filter_t::match_port(const srslte::unique_byte_buffer_t& pdu)
   }
   return true;
 }
+
+uint8_t tft_pdu_matcher::check_tft_filter_match(const srslte::unique_byte_buffer_t& pdu)
+{
+  std::lock_guard<std::mutex> lock(tft_mutex);
+  uint8_t                     lcid = default_lcid;
+  for (std::pair<const uint16_t, tft_packet_filter_t>& filter_pair : tft_filter_map) {
+    bool match = filter_pair.second.match(pdu);
+    if (match) {
+      lcid = filter_pair.second.lcid;
+      log->debug("Found filter match -- EPS bearer Id %d, LCID %d\n", filter_pair.second.eps_bearer_id, lcid);
+      break;
+    }
+  }
+  return lcid;
+}
+
+int tft_pdu_matcher::apply_traffic_flow_template(const uint8_t&                                 erab_id,
+                                                 const uint8_t&                                 lcid,
+                                                 const LIBLTE_MME_TRAFFIC_FLOW_TEMPLATE_STRUCT* tft)
+{
+  std::lock_guard<std::mutex> lock(tft_mutex);
+  switch (tft->tft_op_code) {
+    case LIBLTE_MME_TFT_OPERATION_CODE_CREATE_NEW_TFT:
+      for (int i = 0; i < tft->packet_filter_list_size; i++) {
+        log->info("New packet filter for TFT\n");
+        tft_packet_filter_t filter(erab_id, lcid, tft->packet_filter_list[i], log);
+        auto                it = tft_filter_map.insert(std::make_pair(filter.eval_precedence, filter));
+        if (it.second == false) {
+          log->error("Error inserting TFT Packet Filter\n");
+          return SRSLTE_ERROR_CANT_START;
+        }
+      }
+      break;
+    default:
+      log->error("Unhandled TFT OP code\n");
+      return SRSLTE_ERROR_CANT_START;
+  }
+  return SRSLTE_SUCCESS;
+}
+
+void tft_pdu_matcher::set_default_lcid(const uint8_t lcid)
+{
+  default_lcid = lcid;
+}
+
 } // namespace srsue

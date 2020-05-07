@@ -1,5 +1,5 @@
 /*
- * Copyright 2013-2019 Software Radio Systems Limited
+ * Copyright 2013-2020 Software Radio Systems Limited
  *
  * This file is part of srsLTE.
  *
@@ -63,13 +63,13 @@ void parse_args(int argc, char** argv)
         input_file_name = argv[optind];
         break;
       case 'c':
-        cfo = atof(argv[optind]);
+        cfo = strtof(argv[optind], NULL);
         break;
       case 'g':
-        snr = atof(argv[optind]);
+        snr = strtof(argv[optind], NULL);
         break;
       case 'o':
-        offset = atoi(argv[optind]);
+        offset = (int)strtol(argv[optind], NULL, 10);
         break;
       case 'v':
         srslte_verbose = SRSLTE_VERBOSE_DEBUG;
@@ -114,7 +114,7 @@ int main(int argc, char** argv)
   }
 
   printf("SFLEN is %d samples\n", SFLEN);
-  fft_buffer = malloc(sizeof(cf_t) * SFLEN * 2);
+  fft_buffer = srslte_vec_cf_malloc(SFLEN * 2);
   if (!fft_buffer) {
     perror("malloc");
     goto exit;
@@ -184,7 +184,7 @@ int main(int argc, char** argv)
   if (snr != -1.0) {
     snr -= 10.0;
     printf("Adding AWGN with target SNR: %.2fdB\n", snr);
-    float nstd = powf(10.0f, -snr / 20.0f);
+    float nstd = srslte_convert_dB_to_amplitude(-snr);
     srslte_ch_awgn_c(fft_buffer, fft_buffer, nstd, SFLEN);
   }
 

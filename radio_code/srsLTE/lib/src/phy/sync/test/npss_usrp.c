@@ -1,5 +1,5 @@
 /*
- * Copyright 2013-2019 Software Radio Systems Limited
+ * Copyright 2013-2020 Software Radio Systems Limited
  *
  * This file is part of srsLTE.
  *
@@ -84,26 +84,26 @@ void parse_args(int argc, char** argv)
         has_cfo_corr = false;
         break;
       case 'c':
-        cfo_fixed = atof(argv[optind]);
+        cfo_fixed = strtof(argv[optind], NULL);
         break;
       case 'g':
-        rf_gain = atof(argv[optind]);
+        rf_gain = strtof(argv[optind], NULL);
         break;
       case 'f':
-        rf_freq = atof(argv[optind]);
+        rf_freq = strtof(argv[optind], NULL);
         break;
       case 't':
-        threshold = atof(argv[optind]);
+        threshold = strtof(argv[optind], NULL);
         break;
       case 'i':
-        cell.base.id = atoi(argv[optind]);
+        cell.base.id = (uint32_t)strtol(argv[optind], NULL, 10);
         break;
       case 's':
         save_frame_to_file = true;
         disable_plots      = true;
         break;
       case 'n':
-        nof_frames = atoi(argv[optind]);
+        nof_frames = (int)strtol(argv[optind], NULL, 10);
         break;
       case 'd':
         disable_plots = true;
@@ -181,12 +181,12 @@ int main(int argc, char** argv)
   printf("Set RX gain: %.1f dB\n", srslte_rf_set_rx_gain(&rf, rf_gain));
   printf("Set RX freq: %.2f MHz\n", srslte_rf_set_rx_freq(&rf, 0, rf_freq) / 1000000);
 
-  buffer = malloc(sizeof(cf_t) * flen * 2);
+  buffer = srslte_vec_cf_malloc(flen * 2);
   if (!buffer) {
     perror("malloc");
     exit(-1);
   }
-  bzero(buffer, sizeof(cf_t) * flen * 2);
+  srslte_vec_cf_zero(buffer, flen * 2);
 
   if (srslte_npss_synch_init(&npss, flen, fft_size)) {
     fprintf(stderr, "Error initializing NPSS object\n");

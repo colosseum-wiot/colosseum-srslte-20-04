@@ -1,5 +1,5 @@
 /*
- * Copyright 2013-2019 Software Radio Systems Limited
+ * Copyright 2013-2020 Software Radio Systems Limited
  *
  * This file is part of srsLTE.
  *
@@ -21,7 +21,9 @@
 
 #include "srslte/common/bcd_helpers.h"
 #include "srslte/common/log_filter.h"
+#include "srslte/common/logmap.h"
 #include "srslte/interfaces/ue_interfaces.h"
+#include "srslte/test/ue_test_interfaces.h"
 #include "srslte/upper/pdcp.h"
 #include "srslte/upper/pdcp_entity_lte.h"
 #include "srslte/upper/rlc.h"
@@ -92,7 +94,8 @@ public:
 class rrc_dummy : public rrc_interface_nas
 {
 public:
-  rrc_dummy() : last_sdu_len(0) {
+  rrc_dummy() : last_sdu_len(0)
+  {
     plmns.plmn_id.from_number(mcc, mnc);
     plmns.tac = 0xffff;
   }
@@ -100,12 +103,12 @@ public:
   void write_sdu(unique_byte_buffer_t sdu)
   {
     last_sdu_len = sdu->N_bytes;
-    //printf("NAS generated SDU (len=%d):\n", sdu->N_bytes);
-    //srslte_vec_fprint_byte(stdout, sdu->msg, sdu->N_bytes);
+    // printf("NAS generated SDU (len=%d):\n", sdu->N_bytes);
+    // srslte_vec_fprint_byte(stdout, sdu->msg, sdu->N_bytes);
   }
   std::string get_rb_name(uint32_t lcid) { return std::string("lcid"); }
-  uint32_t get_last_sdu_len() { return last_sdu_len; }
-  void reset() { last_sdu_len = 0; }
+  uint32_t    get_last_sdu_len() { return last_sdu_len; }
+  void        reset() { last_sdu_len = 0; }
 
   bool plmn_search()
   {
@@ -119,36 +122,42 @@ public:
     printf("NAS generated SDU (len=%d):\n", sdu->N_bytes);
     last_sdu_len = sdu->N_bytes;
     srslte_vec_fprint_byte(stdout, sdu->msg, sdu->N_bytes);
+    is_connected_flag = true;
     nas_ptr->connection_request_completed(true);
     return true;
   }
-  bool is_connected() {return false;}
+  bool is_connected() { return is_connected_flag; }
 
   uint16_t get_mcc() { return mcc; }
   uint16_t get_mnc() { return mnc; }
-  void enable_capabilities() {}
+  void     enable_capabilities() {}
   uint32_t get_lcid_for_eps_bearer(const uint32_t& eps_bearer_id) { return 0; }
   void     paging_completed(bool outcome) {}
 
 private:
   nas*         nas_ptr;
-  uint32_t last_sdu_len;
+  uint32_t     last_sdu_len;
   found_plmn_t plmns;
+  bool         is_connected_flag = false;
 };
 
-class stack_dummy : public stack_interface_gw, public thread
+class test_stack_dummy : public srsue::stack_test_dummy, public stack_interface_gw, public thread
 {
 public:
-  stack_dummy(pdcp_interface_gw* pdcp_, srsue::nas* nas_) : pdcp(pdcp_), nas(nas_), thread("DUMMY STACK") {}
-  void init() { start(-1); }
+  test_stack_dummy(pdcp_interface_gw* pdcp_) : pdcp(pdcp_), thread("DUMMY STACK") {}
+  void init(srsue::nas* nas_)
+  {
+    nas = nas_;
+    start(-1);
+  }
   bool switch_on() final
   {
-    proc_state_t proc_result = proc_state_t::on_going;
-    nas->start_attach_request(&proc_result);
-    while (proc_result == proc_state_t::on_going) {
+    proc_state_t proc_result;
+    nas->start_attach_proc(&proc_result, srslte::establishment_cause_t::mo_data);
+    while (not proc_result.is_complete()) {
       usleep(1000);
     }
-    return proc_result == proc_state_t::success;
+    return proc_result.is_success();
   }
   void write_sdu(uint32_t lcid, srslte::unique_byte_buffer_t sdu, bool blocking)
   {
@@ -157,10 +166,10 @@ public:
   bool is_lcid_enabled(uint32_t lcid) { return pdcp->is_lcid_enabled(lcid); }
   void run_thread()
   {
-    running          = true;
-    uint32_t counter = 0;
+    running = true;
     while (running) {
-      nas->run_tti(counter++);
+      timers.step_all();
+      nas->run_tti();
     }
   }
   void stop()
@@ -185,44 +194,42 @@ class gw_dummy : public gw_interface_nas, public gw_interface_pdcp
   {
     return SRSLTE_SUCCESS;
   }
-  void    write_pdu(uint32_t lcid, unique_byte_buffer_t pdu) {}
-  void    write_pdu_mch(uint32_t lcid, srslte::unique_byte_buffer_t sdu) {}
+  void write_pdu(uint32_t lcid, unique_byte_buffer_t pdu) {}
+  void write_pdu_mch(uint32_t lcid, srslte::unique_byte_buffer_t sdu) {}
+  void set_test_loop_mode(const test_loop_mode_state_t mode, const uint32_t ip_pdu_delay_ms = 0) {}
 };
 
-}
+} // namespace srslte
 
 int security_command_test()
 {
-  int ret = SRSLTE_ERROR;
-  srslte::log_filter nas_log("NAS");
+  int                ret = SRSLTE_ERROR;
   srslte::log_filter rrc_log("RRC");
   srslte::log_filter mac_log("MAC");
   srslte::log_filter usim_log("USIM");
 
-  nas_log.set_level(srslte::LOG_LEVEL_DEBUG);
   rrc_log.set_level(srslte::LOG_LEVEL_DEBUG);
-  nas_log.set_hex_limit(100000);
   rrc_log.set_hex_limit(100000);
 
+  stack_test_dummy stack;
+
   rrc_dummy rrc_dummy;
-  gw_dummy gw;
+  gw_dummy  gw;
 
   usim_args_t args;
-  args.algo = "xor";
-  args.imei = "353490069873319";
-  args.imsi = "001010123456789";
-  args.k = "00112233445566778899aabbccddeeff";
-  args.op = "63BFA50EE6523365FF14C1F45F88737D";
+  args.algo     = "xor";
+  args.imei     = "353490069873319";
+  args.imsi     = "001010123456789";
+  args.k        = "00112233445566778899aabbccddeeff";
+  args.op       = "63BFA50EE6523365FF14C1F45F88737D";
   args.using_op = true;
 
   // init USIM
   srsue::usim usim(&usim_log);
-  bool    net_valid;
-  uint8_t res[16];
   usim.init(&args);
 
   {
-    srsue::nas nas(&nas_log);
+    srsue::nas nas(&stack);
     nas_args_t cfg;
     cfg.eia = "1,2,3";
     cfg.eea = "0,1,2,3";
@@ -230,7 +237,7 @@ int security_command_test()
     rrc_dummy.init(&nas);
 
     // push auth request PDU to NAS to generate security context
-    byte_buffer_pool*  pool = byte_buffer_pool::get_instance();
+    byte_buffer_pool*    pool = byte_buffer_pool::get_instance();
     unique_byte_buffer_t tmp  = srslte::allocate_unique_buffer(*pool, true);
     memcpy(tmp->msg, auth_request_pdu, sizeof(auth_request_pdu));
     tmp->N_bytes = sizeof(auth_request_pdu);
@@ -258,23 +265,20 @@ int security_command_test()
 
 int mme_attach_request_test()
 {
-  int ret = SRSLTE_ERROR;
-  srslte::log_filter nas_log("NAS");
+  int                ret = SRSLTE_ERROR;
   srslte::log_filter rrc_log("RRC");
   srslte::log_filter mac_log("MAC");
   srslte::log_filter usim_log("USIM");
   srslte::log_filter gw_log("GW");
 
-  nas_log.set_level(srslte::LOG_LEVEL_DEBUG);
   rrc_log.set_level(srslte::LOG_LEVEL_DEBUG);
   usim_log.set_level(srslte::LOG_LEVEL_DEBUG);
   gw_log.set_level(srslte::LOG_LEVEL_DEBUG);
-  nas_log.set_hex_limit(100000);
   rrc_log.set_hex_limit(100000);
   usim_log.set_hex_limit(100000);
   gw_log.set_hex_limit(100000);
 
-  rrc_dummy rrc_dummy;
+  rrc_dummy  rrc_dummy;
   pdcp_dummy pdcp_dummy;
 
   srsue::usim usim(&usim_log);
@@ -283,17 +287,17 @@ int mme_attach_request_test()
   args.algo = "xor";
   args.imei = "353490069873319";
   args.imsi = "001010123456789";
-  args.k = "00112233445566778899aabbccddeeff";
-  args.op = "63BFA50EE6523365FF14C1F45F88737D";
+  args.k    = "00112233445566778899aabbccddeeff";
+  args.op   = "63BFA50EE6523365FF14C1F45F88737D";
   usim.init(&args);
 
   {
     nas_args_t nas_cfg;
     nas_cfg.force_imsi_attach = true;
     nas_cfg.apn_name          = "test123";
-    srsue::nas  nas(&nas_log);
-    srsue::gw  gw;
-    stack_dummy stack(&pdcp_dummy, &nas);
+    test_stack_dummy stack(&pdcp_dummy);
+    srsue::nas       nas(&stack);
+    srsue::gw        gw;
 
     nas.init(&usim, &rrc_dummy, &gw, nas_cfg);
     rrc_dummy.init(&nas);
@@ -305,8 +309,8 @@ int mme_attach_request_test()
     srslte::logger_stdout def_logstdout;
     srslte::logger*       logger = &def_logstdout;
     gw.init(gw_args, logger, &stack);
+    stack.init(&nas);
 
-    stack.init();
     // trigger test
     stack.switch_on();
     stack.stop();
@@ -317,7 +321,7 @@ int mme_attach_request_test()
     rrc_dummy.reset();
 
     // finally push attach accept
-    byte_buffer_pool*  pool = byte_buffer_pool::get_instance();
+    byte_buffer_pool*    pool = byte_buffer_pool::get_instance();
     unique_byte_buffer_t tmp  = srslte::allocate_unique_buffer(*pool, true);
     memcpy(tmp->msg, attach_accept_pdu, sizeof(attach_accept_pdu));
     tmp->N_bytes = sizeof(attach_accept_pdu);
@@ -341,38 +345,35 @@ int mme_attach_request_test()
 
 int esm_info_request_test()
 {
-  int ret = SRSLTE_ERROR;
-  srslte::log_filter nas_log("NAS");
+  int                ret = SRSLTE_ERROR;
   srslte::log_filter rrc_log("RRC");
   srslte::log_filter mac_log("MAC");
   srslte::log_filter usim_log("USIM");
 
-  nas_log.set_level(srslte::LOG_LEVEL_DEBUG);
   rrc_log.set_level(srslte::LOG_LEVEL_DEBUG);
-  nas_log.set_hex_limit(100000);
   rrc_log.set_hex_limit(100000);
 
+  srsue::stack_test_dummy stack{};
+
   rrc_dummy rrc_dummy;
-  gw_dummy gw;
+  gw_dummy  gw;
 
   usim_args_t args;
   args.algo = "xor";
   args.imei = "353490069873319";
   args.imsi = "001010123456789";
-  args.k = "00112233445566778899aabbccddeeff";
-  args.op = "63BFA50EE6523365FF14C1F45F88737D";
+  args.k    = "00112233445566778899aabbccddeeff";
+  args.op   = "63BFA50EE6523365FF14C1F45F88737D";
 
   // init USIM
   srsue::usim usim(&usim_log);
-  bool    net_valid;
-  uint8_t res[16];
   usim.init(&args);
 
-  srslte::byte_buffer_pool *pool;
+  srslte::byte_buffer_pool* pool;
   pool = byte_buffer_pool::get_instance();
 
   {
-    srsue::nas nas(&nas_log);
+    srsue::nas nas(&stack);
     nas_args_t cfg;
     cfg.apn_name          = "srslte";
     cfg.apn_user          = "srsuser";
@@ -399,15 +400,14 @@ int esm_info_request_test()
 
 int dedicated_eps_bearer_test()
 {
-  srslte::log_filter nas_log("NAS");
   srslte::log_filter rrc_log("RRC");
   srslte::log_filter mac_log("MAC");
   srslte::log_filter usim_log("USIM");
 
-  nas_log.set_level(srslte::LOG_LEVEL_DEBUG);
   rrc_log.set_level(srslte::LOG_LEVEL_DEBUG);
-  nas_log.set_hex_limit(100000);
   rrc_log.set_hex_limit(100000);
+
+  srsue::stack_test_dummy stack;
 
   rrc_dummy rrc_dummy;
   gw_dummy  gw;
@@ -425,7 +425,7 @@ int dedicated_eps_bearer_test()
 
   srslte::byte_buffer_pool* pool = byte_buffer_pool::get_instance();
 
-  srsue::nas nas(&nas_log);
+  srsue::nas nas(&stack);
   nas_args_t cfg        = {};
   cfg.force_imsi_attach = true; // make sure we get a fresh security context
   nas.init(&usim, &rrc_dummy, &gw, cfg);
@@ -480,8 +480,11 @@ int dedicated_eps_bearer_test()
   return SRSLTE_SUCCESS;
 }
 
-int main(int argc, char **argv)
+int main(int argc, char** argv)
 {
+  srslte::logmap::set_default_log_level(LOG_LEVEL_DEBUG);
+  srslte::logmap::set_default_hex_limit(100000);
+
   if (security_command_test()) {
     printf("Security command test failed.\n");
     return -1;

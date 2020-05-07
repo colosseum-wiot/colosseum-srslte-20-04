@@ -1,5 +1,5 @@
 /*
- * Copyright 2013-2019 Software Radio Systems Limited
+ * Copyright 2013-2020 Software Radio Systems Limited
  *
  * This file is part of srsLTE.
  *
@@ -23,8 +23,11 @@
 #include "srslte/asn1/rrc_asn1.h"
 #include "srslte/config.h"
 #include <algorithm>
+#include <srslte/common/interfaces_common.h>
 
 namespace srslte {
+
+using namespace asn1::rrc;
 
 /***************************
  *        PLMN ID
@@ -149,8 +152,8 @@ srslte::rlc_config_t make_rlc_config_t(const asn1::rrc::srb_to_add_mod_s& asn1_t
   if (asn1_type.srb_id <= 2) {
     return rlc_config_t::srb_config(asn1_type.srb_id);
   } else {
-    asn1::rrc::rrc_log_print(
-        asn1::LOG_LEVEL_ERROR, "SRB %d does not support default initialization type\n", asn1_type.srb_id);
+    asn1::log_error("SRB %d does not support default initialization type\n", asn1_type.srb_id);
+    return rlc_config_t();
   }
 }
 
@@ -165,6 +168,7 @@ void to_asn1(asn1::rrc::rlc_cfg_c* asn1_type, const srslte::rlc_config_t& cfg)
           (asn1::rrc::sn_field_len_opts::options)cfg.um.rx_sn_field_length;
       asn1_type->um_bi_dir().ul_um_rlc.sn_field_len.value =
           (asn1::rrc::sn_field_len_opts::options)cfg.um.tx_sn_field_length;
+      break;
     case rlc_mode_t::am:
       asn1_type->set_am();
       asn1::number_to_enum(asn1_type->am().ul_am_rlc.t_poll_retx, cfg.am.t_poll_retx);
@@ -178,7 +182,81 @@ void to_asn1(asn1::rrc::rlc_cfg_c* asn1_type, const srslte::rlc_config_t& cfg)
       // stays TM
       break;
   }
+}
 
+/**
+ * PDCP Config
+ */
+
+srslte::pdcp_config_t make_srb_pdcp_config_t(const uint8_t bearer_id, bool is_ue)
+{
+  pdcp_config_t cfg(bearer_id,
+                    PDCP_RB_IS_SRB,
+                    is_ue ? SECURITY_DIRECTION_UPLINK : SECURITY_DIRECTION_DOWNLINK,
+                    is_ue ? SECURITY_DIRECTION_DOWNLINK : SECURITY_DIRECTION_UPLINK,
+                    PDCP_SN_LEN_5,
+                    pdcp_t_reordering_t::ms500,
+                    pdcp_discard_timer_t::infinity);
+  return cfg;
+}
+
+srslte::pdcp_config_t make_drb_pdcp_config_t(const uint8_t bearer_id, bool is_ue)
+{
+  pdcp_config_t cfg(bearer_id,
+                    PDCP_RB_IS_DRB,
+                    is_ue ? SECURITY_DIRECTION_UPLINK : SECURITY_DIRECTION_DOWNLINK,
+                    is_ue ? SECURITY_DIRECTION_DOWNLINK : SECURITY_DIRECTION_UPLINK,
+                    PDCP_SN_LEN_12,
+                    pdcp_t_reordering_t::ms500,
+                    pdcp_discard_timer_t::infinity);
+  return cfg;
+}
+
+srslte::pdcp_config_t make_drb_pdcp_config_t(const uint8_t bearer_id, bool is_ue, const asn1::rrc::pdcp_cfg_s& pdcp_cfg)
+{
+  // TODO: complete config processing 
+  pdcp_discard_timer_t discard_timer =  pdcp_discard_timer_t::infinity;
+  if (pdcp_cfg.discard_timer_present) {
+    switch (pdcp_cfg.discard_timer.to_number()) {
+      case 10:
+        discard_timer = pdcp_discard_timer_t::ms10;
+        break;
+      default:
+        discard_timer = pdcp_discard_timer_t::infinity;
+        break;
+    }
+  }
+
+  pdcp_t_reordering_t t_reordering = pdcp_t_reordering_t::ms500;
+  if (pdcp_cfg.t_reordering_r12_present) {
+    switch (pdcp_cfg.t_reordering_r12.to_number()) {
+      case 0:
+        t_reordering = pdcp_t_reordering_t::ms0;
+        break;
+      default:
+        t_reordering = pdcp_t_reordering_t::ms500;
+    }
+  }
+
+  uint8_t sn_len = srslte::PDCP_SN_LEN_12;
+  if (pdcp_cfg.rlc_um_present) {
+    if (pdcp_cfg.rlc_um.pdcp_sn_size.value == pdcp_cfg_s::rlc_um_s_::pdcp_sn_size_e_::len7bits) {
+      sn_len = srslte::PDCP_SN_LEN_7;
+    }
+  }
+
+  if (pdcp_cfg.rlc_am_present) {
+    // TODO: handle RLC AM config for PDCP
+  }
+
+  pdcp_config_t cfg(bearer_id,
+                    PDCP_RB_IS_DRB,
+                    is_ue ? SECURITY_DIRECTION_UPLINK : SECURITY_DIRECTION_DOWNLINK,
+                    is_ue ? SECURITY_DIRECTION_DOWNLINK : SECURITY_DIRECTION_UPLINK,
+                    sn_len,
+                    t_reordering,
+                    discard_timer);
+  return cfg;
 }
 
 /***************************
@@ -251,6 +329,54 @@ void set_mac_cfg_t_rach_cfg_common(mac_cfg_t* cfg, const asn1::rrc::rach_cfg_com
 void set_mac_cfg_t_time_alignment(mac_cfg_t* cfg, const asn1::rrc::time_align_timer_opts asn1_type)
 {
   cfg->time_alignment_timer = asn1_type.to_number();
+}
+
+srsenb::sched_interface::ant_info_ded_t make_ant_info_ded(const asn1::rrc::ant_info_ded_s& asn1_type)
+{
+  srsenb::sched_interface::ant_info_ded_t ant_ded = {};
+  ant_ded.tx_mode = static_cast<srsenb::sched_interface::ant_info_ded_t::tx_mode_t>(asn1_type.tx_mode.value);
+  ant_ded.cookbook_subset_type = srsenb::sched_interface::ant_info_ded_t::codebook_t::none;
+  if (asn1_type.codebook_subset_restrict_present) {
+    auto& asn1code = asn1_type.codebook_subset_restrict;
+    ant_ded.cookbook_subset_type =
+        static_cast<srsenb::sched_interface::ant_info_ded_t::codebook_t>(asn1code.type().value);
+    switch (asn1code.type().value) {
+      case ant_info_ded_s::codebook_subset_restrict_c_::types_opts::n2_tx_ant_tm3:
+        ant_ded.codebook_subset_restrict = asn1code.n2_tx_ant_tm3().to_number();
+        break;
+      case ant_info_ded_s::codebook_subset_restrict_c_::types_opts::n4_tx_ant_tm3:
+        ant_ded.codebook_subset_restrict = asn1code.n4_tx_ant_tm3().to_number();
+        break;
+      case ant_info_ded_s::codebook_subset_restrict_c_::types_opts::n2_tx_ant_tm4:
+        ant_ded.codebook_subset_restrict = asn1code.n2_tx_ant_tm4().to_number();
+        break;
+      case ant_info_ded_s::codebook_subset_restrict_c_::types_opts::n4_tx_ant_tm4:
+        ant_ded.codebook_subset_restrict = asn1code.n4_tx_ant_tm4().to_number();
+        break;
+      case ant_info_ded_s::codebook_subset_restrict_c_::types_opts::n2_tx_ant_tm5:
+        ant_ded.codebook_subset_restrict = asn1code.n2_tx_ant_tm5().to_number();
+        break;
+      case ant_info_ded_s::codebook_subset_restrict_c_::types_opts::n4_tx_ant_tm5:
+        ant_ded.codebook_subset_restrict = asn1code.n4_tx_ant_tm5().to_number();
+        break;
+      case ant_info_ded_s::codebook_subset_restrict_c_::types_opts::n2_tx_ant_tm6:
+        ant_ded.codebook_subset_restrict = asn1code.n2_tx_ant_tm6().to_number();
+        break;
+      case ant_info_ded_s::codebook_subset_restrict_c_::types_opts::n4_tx_ant_tm6:
+        ant_ded.codebook_subset_restrict = asn1code.n4_tx_ant_tm6().to_number();
+        break;
+      default:
+        asn1::log_error("Failed to convert antenna codebook type to number\n");
+    }
+  }
+  ant_ded.ue_tx_ant_sel = srsenb::sched_interface::ant_info_ded_t::ue_tx_ant_sel_t::release;
+  if (asn1_type.ue_tx_ant_sel.type().value == setup_opts::setup) {
+    ant_ded.ue_tx_ant_sel =
+        (asn1_type.ue_tx_ant_sel.setup().value == ant_info_ded_s::ue_tx_ant_sel_c_::setup_opts::closed_loop)
+            ? srsenb::sched_interface::ant_info_ded_t::ue_tx_ant_sel_t::closed_loop
+            : srsenb::sched_interface::ant_info_ded_t::ue_tx_ant_sel_t::open_loop;
+  }
+  return ant_ded;
 }
 
 void set_phy_cfg_t_dedicated_cfg(phy_cfg_t* cfg, const asn1::rrc::phys_cfg_ded_s& asn1_type)
@@ -332,7 +458,7 @@ void set_phy_cfg_t_dedicated_cfg(phy_cfg_t* cfg, const asn1::rrc::phys_cfg_ded_s
         asn1_type.ul_pwr_ctrl_ded.delta_mcs_enabled == asn1::rrc::ul_pwr_ctrl_ded_s::delta_mcs_enabled_e_::en0;
     cfg->ul_cfg.power_ctrl.acc_enabled  = asn1_type.ul_pwr_ctrl_ded.accumulation_enabled;
     cfg->ul_cfg.power_ctrl.p0_ue_pucch  = asn1_type.ul_pwr_ctrl_ded.p0_ue_pucch;
-    cfg->ul_cfg.power_ctrl.p_srs_offset = asn1_type.ul_pwr_ctrl_ded.p_srs_offset;
+    cfg->ul_cfg.power_ctrl.p_srs_offset = asn1_type.ul_pwr_ctrl_ded.psrs_offset;
   }
 
   if (asn1_type.ul_pwr_ctrl_ded.filt_coef_present) {
@@ -499,8 +625,8 @@ void set_phy_cfg_t_common_pucch(phy_cfg_t* cfg, const asn1::rrc::pucch_cfg_commo
 {
   /* PUCCH configuration */
   cfg->ul_cfg.pucch.delta_pucch_shift = asn1_type.delta_pucch_shift.to_number();
-  cfg->ul_cfg.pucch.N_cs              = asn1_type.n_cs_an;
-  cfg->ul_cfg.pucch.n_rb_2            = asn1_type.n_rb_cqi;
+  cfg->ul_cfg.pucch.N_cs              = asn1_type.ncs_an;
+  cfg->ul_cfg.pucch.n_rb_2            = asn1_type.nrb_cqi;
   cfg->ul_cfg.pucch.N_pucch_1         = asn1_type.n1_pucch_an;
 }
 
@@ -530,7 +656,6 @@ void set_phy_cfg_t_common_pwr_ctrl(phy_cfg_t* cfg, const asn1::rrc::ul_pwr_ctrl_
 
 void set_phy_cfg_t_scell_config(phy_cfg_t* cfg, const asn1::rrc::scell_to_add_mod_r10_s& asn1_type)
 {
-
   if (asn1_type.rr_cfg_common_scell_r10_present) {
 
     // Enable always CSI request extra bit
@@ -684,6 +809,79 @@ void set_phy_cfg_t_scell_config(phy_cfg_t* cfg, const asn1::rrc::scell_to_add_mo
   }
 }
 
+/*
+ * UE Capabilities parser
+ */
+
+template <class T>
+static void set_rrc_ue_eutra_cap_t_gen(rrc_ue_capabilities_t& ue_cap, const T& ue_eutra_cap)
+{
+  if (ue_eutra_cap.non_crit_ext_present) {
+    set_rrc_ue_eutra_cap_t_gen(ue_cap, ue_eutra_cap.non_crit_ext);
+  }
+}
+
+static void set_rrc_ue_eutra_cap_t_gen(rrc_ue_capabilities_t& ue_cap, const asn1::rrc::ue_eutra_cap_s& ue_eutra_cap)
+{
+  ue_cap.release  = ue_eutra_cap.access_stratum_release.to_number();
+  ue_cap.category = ue_eutra_cap.ue_category;
+
+  if (ue_eutra_cap.non_crit_ext_present) {
+    set_rrc_ue_eutra_cap_t_gen(ue_cap, ue_eutra_cap.non_crit_ext);
+  }
+}
+
+static void set_rrc_ue_eutra_cap_t_gen(rrc_ue_capabilities_t&                     ue_cap,
+                                       const asn1::rrc::ue_eutra_cap_v1020_ies_s& ue_eutra_cap)
+{
+  if (ue_eutra_cap.ue_category_v1020_present) {
+    ue_cap.category = ue_eutra_cap.ue_category_v1020;
+  }
+
+  if (ue_eutra_cap.non_crit_ext_present) {
+    set_rrc_ue_eutra_cap_t_gen(ue_cap, ue_eutra_cap.non_crit_ext);
+  }
+}
+
+static void set_rrc_ue_eutra_cap_t_gen(rrc_ue_capabilities_t&                     ue_cap,
+                                       const asn1::rrc::ue_eutra_cap_v1250_ies_s& ue_eutra_cap)
+{
+  if (ue_eutra_cap.ue_category_dl_r12_present) {
+    ue_cap.category_dl = ue_eutra_cap.ue_category_dl_r12;
+  }
+
+  if (ue_eutra_cap.ue_category_ul_r12_present) {
+    ue_cap.category_ul = ue_eutra_cap.ue_category_ul_r12;
+  }
+
+  if (ue_eutra_cap.rf_params_v1250_present) {
+    const asn1::rrc::rf_params_v1250_s& rf_params = ue_eutra_cap.rf_params_v1250;
+    if (rf_params.supported_band_list_eutra_v1250_present) {
+      ue_cap.support_dl_256qam = true;
+
+      for (const asn1::rrc::supported_band_eutra_v1250_s& supported_band : rf_params.supported_band_list_eutra_v1250) {
+        ue_cap.support_dl_256qam &= supported_band.dl_minus256_qam_r12_present;
+        ue_cap.support_ul_64qam &= supported_band.ul_minus64_qam_r12_present;
+      }
+    }
+  }
+
+  if (ue_eutra_cap.non_crit_ext_present) {
+    set_rrc_ue_eutra_cap_t_gen(ue_cap, ue_eutra_cap.non_crit_ext);
+  }
+}
+
+static void set_rrc_ue_eutra_cap_t_gen(rrc_ue_capabilities_t&                     ue_cap,
+                                       const asn1::rrc::ue_eutra_cap_v1530_ies_s& ue_eutra_cap)
+{
+  ; // Do nothing
+}
+
+void set_rrc_ue_capabilities_t(rrc_ue_capabilities_t& ue_cap, const asn1::rrc::ue_eutra_cap_s& eutra_cap_s)
+{
+  set_rrc_ue_eutra_cap_t_gen(ue_cap, eutra_cap_s);
+}
+
 // MBMS
 
 mbms_notif_cfg_t make_mbms_notif_cfg(const asn1::rrc::mbms_notif_cfg_r9_s& asn1_type)
@@ -779,3 +977,112 @@ sib13_t make_sib13(const asn1::rrc::sib_type13_r9_s& asn1_type)
 }
 
 } // namespace srslte
+
+namespace asn1 {
+namespace rrc {
+
+/***************************
+ *      MeasConfig
+ **************************/
+
+bool operator==(const cells_to_add_mod_s& lhs, const cells_to_add_mod_s& rhs)
+{
+  return lhs.cell_idx == rhs.cell_idx and lhs.pci == rhs.pci and
+         lhs.cell_individual_offset == rhs.cell_individual_offset;
+}
+
+bool operator==(const meas_obj_to_add_mod_s& lhs, const meas_obj_to_add_mod_s& rhs)
+{
+  if (lhs.meas_obj_id != rhs.meas_obj_id or lhs.meas_obj.type() != lhs.meas_obj.type()) {
+    return false;
+  }
+  auto &lhs_eutra = lhs.meas_obj.meas_obj_eutra(), &rhs_eutra = rhs.meas_obj.meas_obj_eutra();
+  if (lhs_eutra.ext or rhs_eutra.ext) {
+    printf("[%d] extension of measObjToAddMod not supported\n", __LINE__);
+    return false;
+  }
+
+  if (lhs_eutra.offset_freq_present != rhs_eutra.offset_freq_present or
+      (lhs_eutra.offset_freq_present and lhs_eutra.offset_freq != rhs_eutra.offset_freq)) {
+    return false;
+  }
+
+  if (lhs_eutra.carrier_freq != rhs_eutra.carrier_freq or not(lhs_eutra.neigh_cell_cfg == rhs_eutra.neigh_cell_cfg) or
+      lhs_eutra.presence_ant_port1 != rhs_eutra.presence_ant_port1 or
+      lhs_eutra.allowed_meas_bw != rhs_eutra.allowed_meas_bw) {
+    return false;
+  }
+
+  if (lhs_eutra.cells_to_add_mod_list.size() != rhs_eutra.cells_to_add_mod_list.size()) {
+    return false;
+  }
+
+  auto cells_are_equal = [](const cells_to_add_mod_s& lhs, const cells_to_add_mod_s& rhs) { return lhs == rhs; };
+  return std::equal(lhs_eutra.cells_to_add_mod_list.begin(),
+                    lhs_eutra.cells_to_add_mod_list.end(),
+                    rhs_eutra.cells_to_add_mod_list.begin(),
+                    cells_are_equal);
+}
+
+bool operator==(const report_cfg_eutra_s& lhs, const report_cfg_eutra_s& rhs)
+{
+  if (lhs.ext or rhs.ext) {
+    printf("[%d] extension of reportCfgToAddMod not supported\n", __LINE__);
+    return false;
+  }
+  if (lhs.trigger_type.type() != rhs.trigger_type.type()) {
+    return false;
+  }
+  if (lhs.trigger_type.type().value == report_cfg_eutra_s::trigger_type_c_::types_opts::event) {
+    auto &lhs_ev = lhs.trigger_type.event(), &rhs_ev = rhs.trigger_type.event();
+    if (lhs_ev.hysteresis != rhs_ev.hysteresis or lhs_ev.time_to_trigger != rhs_ev.time_to_trigger or
+        lhs_ev.event_id.type() != rhs_ev.event_id.type()) {
+      return false;
+    }
+    if (lhs_ev.event_id.type().value != eutra_event_s::event_id_c_::types_opts::event_a3) {
+      printf("[%d] event type != A3 of reportCfgToAddMod not supported\n", __LINE__);
+      return false;
+    }
+    if (lhs_ev.event_id.event_a3().report_on_leave != rhs_ev.event_id.event_a3().report_on_leave or
+        lhs_ev.event_id.event_a3().a3_offset != rhs_ev.event_id.event_a3().a3_offset) {
+      return false;
+    }
+  } else {
+    if (lhs.trigger_type.periodical().purpose != rhs.trigger_type.periodical().purpose) {
+      return false;
+    }
+  }
+  return lhs.trigger_quant == rhs.trigger_quant and lhs.report_quant == rhs.report_quant and
+         lhs.max_report_cells == rhs.max_report_cells and lhs.report_interv == rhs.report_interv and
+         lhs.report_amount == rhs.report_amount;
+}
+
+bool operator==(const report_cfg_to_add_mod_s& lhs, const report_cfg_to_add_mod_s& rhs)
+{
+  if (lhs.report_cfg_id != rhs.report_cfg_id or lhs.report_cfg.type() != rhs.report_cfg.type()) {
+    return false;
+  }
+  return lhs.report_cfg.report_cfg_eutra() == rhs.report_cfg.report_cfg_eutra();
+}
+
+bool operator==(const meas_id_to_add_mod_s& lhs, const meas_id_to_add_mod_s& rhs)
+{
+  return lhs.meas_id == rhs.meas_id and lhs.meas_obj_id == rhs.meas_obj_id and lhs.report_cfg_id == rhs.report_cfg_id;
+}
+
+bool operator==(const asn1::rrc::quant_cfg_s& lhs, const asn1::rrc::quant_cfg_s& rhs)
+{
+  if (lhs.ext or lhs.quant_cfg_geran_present or lhs.quant_cfg_utra_present or lhs.quant_cfg_cdma2000_present or
+      rhs.ext or rhs.quant_cfg_geran_present or rhs.quant_cfg_utra_present or rhs.quant_cfg_cdma2000_present) {
+    printf("[%d] quantCfg properties not supported\n", __LINE__);
+    return false;
+  }
+  return lhs.quant_cfg_eutra_present == rhs.quant_cfg_eutra_present and
+         lhs.quant_cfg_eutra.filt_coef_rsrp_present == rhs.quant_cfg_eutra.filt_coef_rsrp_present and
+         lhs.quant_cfg_eutra.filt_coef_rsrp == rhs.quant_cfg_eutra.filt_coef_rsrp and
+         lhs.quant_cfg_eutra.filt_coef_rsrq_present == rhs.quant_cfg_eutra.filt_coef_rsrq_present and
+         lhs.quant_cfg_eutra.filt_coef_rsrq == rhs.quant_cfg_eutra.filt_coef_rsrq;
+}
+
+} // namespace rrc
+} // namespace asn1

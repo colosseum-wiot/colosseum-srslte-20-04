@@ -1,5 +1,5 @@
 /*
- * Copyright 2013-2019 Software Radio Systems Limited
+ * Copyright 2013-2020 Software Radio Systems Limited
  *
  * This file is part of srsLTE.
  *
@@ -30,11 +30,11 @@
 #ifndef SRSLTE_LOGGER_FILE_H
 #define SRSLTE_LOGGER_FILE_H
 
-#include <stdio.h>
-#include <deque>
-#include <string>
 #include "srslte/common/logger.h"
 #include "srslte/common/threads.h"
+#include <deque>
+#include <stdio.h>
+#include <string>
 
 namespace srslte {
 
@@ -52,17 +52,17 @@ public:
   void log(unique_log_str_t msg);
 
 private:
-  void run_thread(); 
+  void run_thread();
   void flush();
 
-  uint32_t              name_idx;
-  int64_t               max_length;
-  int64_t               cur_length;
-  FILE*                 logfile;
-  bool                  is_running;
-  std::string           filename;
-  pthread_cond_t        not_empty;
-  pthread_mutex_t       mutex;
+  uint32_t        name_idx;
+  int64_t         max_length;
+  int64_t         cur_length;
+  FILE*           logfile;
+  bool            is_running;
+  std::string     filename;
+  pthread_cond_t  not_empty;
+  pthread_mutex_t mutex;
 
   std::deque<unique_log_str_t> buffer;
 };

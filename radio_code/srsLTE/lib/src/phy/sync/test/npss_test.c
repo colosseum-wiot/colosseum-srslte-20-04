@@ -1,5 +1,5 @@
 /*
- * Copyright 2013-2019 Software Radio Systems Limited
+ * Copyright 2013-2020 Software Radio Systems Limited
  *
  * This file is part of srsLTE.
  *
@@ -51,7 +51,7 @@ void parse_args(int argc, char** argv)
   while ((opt = getopt(argc, argv, "lv")) != -1) {
     switch (opt) {
       case 'l':
-        input_len = atoi(argv[optind]);
+        input_len = (int)strtol(argv[optind], NULL, 10);
         break;
       case 'v':
         srslte_verbose = SRSLTE_VERBOSE_DEBUG;
@@ -91,19 +91,19 @@ int main(int argc, char** argv)
 
   printf("Input buffer length is %d samples\n", input_len);
   uint32_t buffer_len = input_len + SRSLTE_NPSS_CORR_FILTER_LEN + 1;
-  fft_buffer          = malloc(sizeof(cf_t) * buffer_len);
+  fft_buffer          = srslte_vec_cf_malloc(buffer_len);
   if (!fft_buffer) {
     perror("malloc");
     exit(-1);
   }
-  bzero(fft_buffer, sizeof(cf_t) * buffer_len);
+  srslte_vec_cf_zero(fft_buffer, buffer_len);
 
-  input_buffer = malloc(sizeof(cf_t) * input_len);
+  input_buffer = srslte_vec_cf_malloc(input_len);
   if (!input_buffer) {
     perror("malloc");
     exit(-1);
   }
-  bzero(input_buffer, sizeof(cf_t) * input_len);
+  srslte_vec_cf_zero(input_buffer, input_len);
 
   if (srslte_ofdm_tx_init(&ifft, SRSLTE_CP_NORM, input_buffer, fft_buffer, SRSLTE_NBIOT_DEFAULT_NUM_PRB_BASECELL)) {
     fprintf(stderr, "Error creating iFFT object\n");
@@ -148,6 +148,7 @@ int main(int argc, char** argv)
   free(fft_buffer);
   free(input_buffer);
   srslte_ofdm_tx_free(&ifft);
+
 
   if (peak_pos == SRSLTE_NPSS_CORR_OFFSET) {
     printf("Ok\n");

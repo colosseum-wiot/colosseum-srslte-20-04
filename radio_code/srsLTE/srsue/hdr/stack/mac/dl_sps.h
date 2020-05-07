@@ -1,5 +1,5 @@
 /*
- * Copyright 2013-2019 Software Radio Systems Limited
+ * Copyright 2013-2020 Software Radio Systems Limited
  *
  * This file is part of srsLTE.
  *
@@ -27,19 +27,16 @@
 
 /* Downlink Semi-Persistent schedulign (Section 5.10.1) */
 
-
 namespace srsue {
-  
+
 class dl_sps
 {
 public:
+  void clear() {}
+  void reset() {}
+  bool get_pending_grant(uint32_t tti, mac_interface_phy_lte::mac_grant_dl_t* grant) { return false; }
 
-  void            clear() {}
-  void            reset() {}
-  bool            get_pending_grant(uint32_t tti, mac_interface_phy_lte::mac_grant_dl_t* grant) { return false; }
-
-private:  
-  
+private:
 };
 
 } // namespace srsue

@@ -1,5 +1,5 @@
 /*
- * Copyright 2013-2019 Software Radio Systems Limited
+ * Copyright 2013-2020 Software Radio Systems Limited
  *
  * This file is part of srsLTE.
  *
@@ -32,13 +32,8 @@
 
 #include "srslte/config.h"
 
-SRSLTE_API float srslte_sfo_estimate(int *t0, 
-                                     int len, 
-                                     float period);
+SRSLTE_API float srslte_sfo_estimate(int* t0, int len, float period);
 
-SRSLTE_API float srslte_sfo_estimate_period(int *t0, 
-                                            int *t, 
-                                            int len, 
-                                            float period);
+SRSLTE_API float srslte_sfo_estimate_period(int* t0, int* t, int len, float period);
 
 #endif // SRSLTE_SFO_H

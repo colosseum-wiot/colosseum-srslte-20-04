@@ -1,5 +1,5 @@
 /*
- * Copyright 2013-2019 Software Radio Systems Limited
+ * Copyright 2013-2020 Software Radio Systems Limited
  *
  * This file is part of srsLTE.
  *
@@ -36,21 +36,17 @@
 using namespace asn1;
 using namespace asn1::rrc;
 
-void nas_test() {
+int nas_test()
+{
   srslte::log_filter log1("NAS");
   log1.set_level(srslte::LOG_LEVEL_DEBUG);
   log1.set_hex_limit(-1);
 
-  uint8_t  nas_message[128] = {0x27, 0x4f, 0xab, 0xef, 0x59, 0x01, 0x07, 0x42,
-                               0x01, 0x49, 0x06, 0x40, 0x00, 0xf1, 0x10, 0x31,
-                               0x32, 0x00, 0x22, 0x52, 0x01, 0xc1, 0x05, 0x07,
-                               0xff, 0xff, 0xff, 0xff, 0x0c, 0x0b, 0x76, 0x7a,
-                               0x77, 0x69, 0x6e, 0x74, 0x65, 0x72, 0x6e, 0x65,
-                               0x74, 0x05, 0x01, 0x0e, 0x0e, 0x0e, 0x01, 0x5e,
-                               0x04, 0xfe, 0xfe, 0x81, 0x4e, 0x50, 0x0b, 0xf6,
-                               0x00, 0xf1, 0x10, 0x00, 0x02, 0x01, 0x01, 0x00,
-                               0x00, 0x62, 0x17, 0x2c, 0x59, 0x49, 0x64, 0x01,
-                               0x03};
+  uint8_t  nas_message[128] = {0x27, 0x4f, 0xab, 0xef, 0x59, 0x01, 0x07, 0x42, 0x01, 0x49, 0x06, 0x40, 0x00, 0xf1, 0x10,
+                              0x31, 0x32, 0x00, 0x22, 0x52, 0x01, 0xc1, 0x05, 0x07, 0xff, 0xff, 0xff, 0xff, 0x0c, 0x0b,
+                              0x76, 0x7a, 0x77, 0x69, 0x6e, 0x74, 0x65, 0x72, 0x6e, 0x65, 0x74, 0x05, 0x01, 0x0e, 0x0e,
+                              0x0e, 0x01, 0x5e, 0x04, 0xfe, 0xfe, 0x81, 0x4e, 0x50, 0x0b, 0xf6, 0x00, 0xf1, 0x10, 0x00,
+                              0x02, 0x01, 0x01, 0x00, 0x00, 0x62, 0x17, 0x2c, 0x59, 0x49, 0x64, 0x01, 0x03};
   uint32_t nas_message_len  = sizeof(nas_message);
 
   uint8                               pd;
@@ -58,48 +54,49 @@ void nas_test() {
   LIBLTE_BYTE_MSG_STRUCT              buf;
   LIBLTE_MME_ATTACH_ACCEPT_MSG_STRUCT attach_accept;
   bzero(&attach_accept, sizeof(LIBLTE_MME_ATTACH_ACCEPT_MSG_STRUCT));
-  LIBLTE_MME_ACTIVATE_DEFAULT_EPS_BEARER_CONTEXT_REQUEST_MSG_STRUCT  act_def_eps_bearer_context_req;
+  LIBLTE_MME_ACTIVATE_DEFAULT_EPS_BEARER_CONTEXT_REQUEST_MSG_STRUCT act_def_eps_bearer_context_req;
   bzero(&act_def_eps_bearer_context_req, sizeof(LIBLTE_MME_ACTIVATE_DEFAULT_EPS_BEARER_CONTEXT_REQUEST_MSG_STRUCT));
 
   bzero(&buf, sizeof(LIBLTE_BYTE_MSG_STRUCT));
   memcpy(buf.msg, nas_message, nas_message_len);
   buf.N_bytes = nas_message_len;
   liblte_mme_parse_msg_header(&buf, &pd, &msg_type);
-  switch(msg_type)
-  {
-  case LIBLTE_MME_MSG_TYPE_ATTACH_ACCEPT:
+  switch (msg_type) {
+    case LIBLTE_MME_MSG_TYPE_ATTACH_ACCEPT:
       liblte_mme_unpack_attach_accept_msg(&buf, &attach_accept);
-      liblte_mme_unpack_activate_default_eps_bearer_context_request_msg(&attach_accept.esm_msg, &act_def_eps_bearer_context_req);
+      liblte_mme_unpack_activate_default_eps_bearer_context_request_msg(&attach_accept.esm_msg,
+                                                                        &act_def_eps_bearer_context_req);
       break;
-  case LIBLTE_MME_MSG_TYPE_ATTACH_REJECT:
+    case LIBLTE_MME_MSG_TYPE_ATTACH_REJECT:
       break;
-  case LIBLTE_MME_MSG_TYPE_AUTHENTICATION_REQUEST:
+    case LIBLTE_MME_MSG_TYPE_AUTHENTICATION_REQUEST:
 
       break;
-  case LIBLTE_MME_MSG_TYPE_AUTHENTICATION_REJECT:
+    case LIBLTE_MME_MSG_TYPE_AUTHENTICATION_REJECT:
 
       break;
-  case LIBLTE_MME_MSG_TYPE_IDENTITY_REQUEST:
+    case LIBLTE_MME_MSG_TYPE_IDENTITY_REQUEST:
 
       break;
-  case LIBLTE_MME_MSG_TYPE_SECURITY_MODE_COMMAND:
+    case LIBLTE_MME_MSG_TYPE_SECURITY_MODE_COMMAND:
 
       break;
-  case LIBLTE_MME_MSG_TYPE_SERVICE_REJECT:
+    case LIBLTE_MME_MSG_TYPE_SERVICE_REJECT:
 
       break;
-  case LIBLTE_MME_MSG_TYPE_ESM_INFORMATION_REQUEST:
+    case LIBLTE_MME_MSG_TYPE_ESM_INFORMATION_REQUEST:
 
       break;
-  case LIBLTE_MME_MSG_TYPE_EMM_INFORMATION:
+    case LIBLTE_MME_MSG_TYPE_EMM_INFORMATION:
 
       break;
-  default:
+    default:
       break;
   }
+  return 0;
 }
 
-int basic_test()
+int meas_obj_test()
 {
   srslte::log_filter log1("RRC");
   log1.set_level(srslte::LOG_LEVEL_DEBUG);
@@ -118,8 +115,7 @@ int basic_test()
       0x20, 0x60, 0x18, 0x07, 0x97, 0x09, 0x1f, 0xc3, 0x06, 0x00, 0x81, 0x00, 0x00, 0x11};
   uint32_t rrc_msg_len = sizeof(rrc_msg);
 
-  bit_ref bref(&rrc_msg[0], sizeof(rrc_msg));
-  bit_ref bref0(&rrc_msg[0], sizeof(rrc_msg));
+  cbit_ref bref(&rrc_msg[0], sizeof(rrc_msg));
 
   dl_dcch_msg.unpack(bref);
 
@@ -144,21 +140,21 @@ int basic_test()
   dl_dcch_msg.pack(bref2);
 
   //
-  bref = bit_ref(&rrc_msg2[0], rrc_msg_len);
+  bref = cbit_ref(&rrc_msg2[0], rrc_msg_len);
   dl_dcch_msg.unpack(bref);
-  bref = bit_ref(&rrc_msg[0], rrc_msg_len);
-  dl_dcch_msg.pack(bref);
-  uint32_t nof_bytes = (uint32_t)bref.distance_bytes(&rrc_msg[0]);
+  bit_ref bref_pack(&rrc_msg[0], rrc_msg_len);
+  dl_dcch_msg.pack(bref_pack);
+  uint32_t nof_bytes = (uint32_t)bref.distance_bytes();
 
-  TESTASSERT(bref.distance(&rrc_msg[0]) == bref2.distance(&rrc_msg2[0]));
+  TESTASSERT(bref_pack.distance() == bref2.distance());
   TESTASSERT(memcmp(rrc_msg2, rrc_msg, nof_bytes) == 0);
 
   printf("done\n");
   return 0;
 }
 
-
-int main(int argc, char **argv) {
-  TESTASSERT(basic_test() == 0);
-  nas_test();
+int main(int argc, char** argv)
+{
+  TESTASSERT(meas_obj_test() == 0);
+  TESTASSERT(nas_test() == 0);
 }

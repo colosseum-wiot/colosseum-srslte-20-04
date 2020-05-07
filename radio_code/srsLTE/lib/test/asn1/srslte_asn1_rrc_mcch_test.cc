@@ -1,5 +1,5 @@
 /*
- * Copyright 2013-2019 Software Radio Systems Limited
+ * Copyright 2013-2020 Software Radio Systems Limited
  *
  * This file is part of srsLTE.
  *
@@ -36,7 +36,7 @@ using namespace asn1::rrc;
     }                                                                                                                  \
   }
 
-int basic_test()
+int meas_obj_test()
 {
   srslte::log_filter log1("RRC");
   log1.set_level(srslte::LOG_LEVEL_DEBUG);
@@ -48,8 +48,7 @@ int basic_test()
   uint32_t known_reference_len = sizeof(known_reference);
   // 0d8fdfffffffe22ffc385e61eca80000020210002005e61eca8000004042
 
-  asn1::bit_ref         bref(&known_reference[0], sizeof(known_reference));
-  asn1::bit_ref         bref0(&known_reference[0], sizeof(known_reference));
+  asn1::cbit_ref        bref(&known_reference[0], sizeof(known_reference));
   asn1::rrc::mcch_msg_s mcch_msg;
 
   mcch_msg.unpack(bref);
@@ -117,21 +116,20 @@ int basic_test()
   TESTASSERT(area_cfg_r9->pmch_info_list_r9[1].mbms_session_info_list_r9[0].session_id_r9.to_string() == "02");
   TESTASSERT(area_cfg_r9->pmch_info_list_r9[1].mbms_session_info_list_r9[0].lc_ch_id_r9 == 2);
 
-  //log1.info_hex(byte_buf.msg, byte_buf.N_bytes, "MCCH packed message:");
+  // log1.info_hex(byte_buf.msg, byte_buf.N_bytes, "MCCH packed message:");
 
-  uint8_t       rrc_msg2[known_reference_len];
+  uint8_t rrc_msg2[known_reference_len];
   bzero(rrc_msg2, sizeof(rrc_msg2));
   asn1::bit_ref bref2(&rrc_msg2[0], sizeof(rrc_msg2));
   mcch_msg.pack(bref2);
-  TESTASSERT(bref.distance(bref0) == bref2.distance(&rrc_msg2[0]));
+  TESTASSERT(bref.distance() == bref2.distance());
   TESTASSERT(memcmp(rrc_msg2, known_reference, known_reference_len) == 0);
 
   return 0;
 }
 
-int main(int argc, char **argv)
+int main(int argc, char** argv)
 {
-  TESTASSERT(basic_test() == 0);
+  TESTASSERT(meas_obj_test() == 0);
   return 0;
 }
-

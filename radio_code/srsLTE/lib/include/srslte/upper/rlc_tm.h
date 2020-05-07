@@ -1,5 +1,5 @@
 /*
- * Copyright 2013-2019 Software Radio Systems Limited
+ * Copyright 2013-2020 Software Radio Systems Limited
  *
  * This file is part of srsLTE.
  *
@@ -23,59 +23,58 @@
 #define SRSLTE_RLC_TM_H
 
 #include "srslte/common/buffer_pool.h"
-#include "srslte/common/log.h"
 #include "srslte/common/common.h"
+#include "srslte/common/log.h"
 #include "srslte/interfaces/ue_interfaces.h"
-#include "srslte/upper/rlc_tx_queue.h"
 #include "srslte/upper/rlc_common.h"
+#include "srslte/upper/rlc_tx_queue.h"
 
 namespace srslte {
 
-class rlc_tm : public rlc_common
+class rlc_tm final : public rlc_common
 {
 public:
-  rlc_tm(srslte::log*               log_,
+  rlc_tm(srslte::log_ref            log_,
          uint32_t                   lcid_,
          srsue::pdcp_interface_rlc* pdcp_,
          srsue::rrc_interface_rlc*  rrc_,
-         srslte::timers*            timers_,
+         srslte::timer_handler*     timers_,
          uint32_t                   queue_len = 16);
-  ~rlc_tm();
-  bool configure(rlc_config_t cnfg);
-  void stop();
-  void reestablish();
-  void empty_queue(); 
+  ~rlc_tm() override;
+  bool configure(const rlc_config_t& cnfg) override;
+  void stop() override;
+  void reestablish() override;
+  void empty_queue() override;
 
-  rlc_mode_t    get_mode();
-  uint32_t      get_bearer();
+  rlc_mode_t get_mode() override;
+  uint32_t   get_bearer() override;
 
-  uint32_t get_num_tx_bytes();
-  uint32_t get_num_rx_bytes();
-  void reset_metrics();
+  rlc_bearer_metrics_t get_metrics() override;
+  void                 reset_metrics() override;
 
   // PDCP interface
-  void write_sdu(unique_byte_buffer_t sdu, bool blocking);
+  void write_sdu(unique_byte_buffer_t sdu, bool blocking) override;
+  void discard_sdu(uint32_t discard_sn) override;
 
   // MAC interface
-  bool     has_data();
-  uint32_t get_buffer_state();
-  int      read_pdu(uint8_t *payload, uint32_t nof_bytes);
-  void     write_pdu(uint8_t *payload, uint32_t nof_bytes);
+  bool     has_data() override;
+  uint32_t get_buffer_state() override;
+  int      read_pdu(uint8_t* payload, uint32_t nof_bytes) override;
+  void     write_pdu(uint8_t* payload, uint32_t nof_bytes) override;
 
 private:
   byte_buffer_pool*          pool = nullptr;
-  srslte::log*               log  = nullptr;
+  srslte::log_ref            log;
   uint32_t                   lcid = 0;
   srsue::pdcp_interface_rlc* pdcp = nullptr;
   srsue::rrc_interface_rlc*  rrc  = nullptr;
 
   bool tx_enabled = true;
 
-  uint32_t num_tx_bytes = 0;
-  uint32_t num_rx_bytes = 0;
+  rlc_bearer_metrics_t metrics = {};
 
   // Thread-safe queues for MAC messages
-  rlc_tx_queue    ul_queue;
+  rlc_tx_queue ul_queue;
 };
 
 } // namespace srslte

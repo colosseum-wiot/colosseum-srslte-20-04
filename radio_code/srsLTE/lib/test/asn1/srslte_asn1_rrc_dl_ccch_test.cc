@@ -1,5 +1,5 @@
 /*
- * Copyright 2013-2019 Software Radio Systems Limited
+ * Copyright 2013-2020 Software Radio Systems Limited
  *
  * This file is part of srsLTE.
  *
@@ -41,13 +41,12 @@ int rrc_conn_setup_test1()
   log1.set_level(srslte::LOG_LEVEL_DEBUG);
   log1.set_hex_limit(128);
 
-  uint8_t  rrc_msg[] = {0x60, 0x12, 0x98, 0x0b, 0xfd, 0xd2, 0x04, 0xfa, 0x18, 0x3e, 0xd5, 0xe6, 0xc2,
-                        0x59, 0x90, 0xc1, 0xa6, 0x00, 0x01, 0x31, 0x40, 0x42, 0x50, 0x80, 0x00, 0xf8};
+  uint8_t  rrc_msg[]   = {0x60, 0x12, 0x98, 0x0b, 0xfd, 0xd2, 0x04, 0xfa, 0x18, 0x3e, 0xd5, 0xe6, 0xc2,
+                       0x59, 0x90, 0xc1, 0xa6, 0x00, 0x01, 0x31, 0x40, 0x42, 0x50, 0x80, 0x00, 0xf8};
   uint32_t rrc_msg_len = sizeof(rrc_msg);
   // 6012980bfdd204fa183ed5e6c25990c1a60001314042508000f8
 
-  bit_ref bref(&rrc_msg[0], sizeof(rrc_msg));
-  bit_ref bref0(&rrc_msg[0], sizeof(rrc_msg));
+  cbit_ref bref(&rrc_msg[0], sizeof(rrc_msg));
 
   dl_ccch_msg_s dl_ccch_msg;
   dl_ccch_msg.unpack(bref);
@@ -57,12 +56,12 @@ int rrc_conn_setup_test1()
 
   rrc_conn_setup_s* setup = &dl_ccch_msg.msg.c1().rrc_conn_setup();
 
-  // FIXME: add test for setup
+  // TODO: add test for setup
 
   rr_cfg_ded_s* cnfg = &setup->crit_exts.c1().rrc_conn_setup_r8().rr_cfg_ded;
   TESTASSERT(cnfg->phys_cfg_ded_present);
 
-  // FIXME: add tests for RR config dedicated
+  // TODO: add tests for RR config dedicated
 
   phys_cfg_ded_s* phy_cnfg = &cnfg->phys_cfg_ded;
   TESTASSERT(phy_cnfg->cqi_report_cfg_present);
@@ -82,7 +81,7 @@ int rrc_conn_setup_test1()
   if (dl_ccch_msg.pack(bref2) != SRSASN_SUCCESS) {
     return -1;
   }
-  TESTASSERT(bref.distance(bref0) == bref2.distance(&rrc_msg2[0]));
+  TESTASSERT(bref.distance() == bref2.distance());
   TESTASSERT(memcmp(rrc_msg2, rrc_msg, rrc_msg_len) == 0);
 
   return 0;

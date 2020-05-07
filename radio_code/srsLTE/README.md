@@ -2,8 +2,11 @@ srsLTE
 ========
 
 [![Build Status](https://travis-ci.org/srsLTE/srsLTE.svg?branch=master)](https://travis-ci.org/srsLTE/srsLTE)
+[![Language grade: C/C++](https://img.shields.io/lgtm/grade/cpp/g/srsLTE/srsLTE.svg?logo=lgtm&logoWidth=18)](https://lgtm.com/projects/g/srsLTE/srsLTE/context:cpp)
+[![Coverity](https://scan.coverity.com/projects/10045/badge.svg)](https://scan.coverity.com/projects/srslte)
 
 srsLTE is a free and open-source LTE software suite developed by SRS (www.softwareradiosystems.com). 
+See the srsLTE project pages (www.srslte.com) for documentation, guides and project news.
 
 It includes:
   * srsUE - a complete SDR LTE UE application featuring all layers from PHY to IP
@@ -86,7 +89,7 @@ The library currently supports the Ettus Universal Hardware Driver (UHD) and the
 We have tested the following hardware: 
  * USRP B210
  * USRP B205mini
- * USRP X300
+ * USRP X300 (recommended UHD version: 3.9.7)
  * limeSDR
  * bladeRF
 

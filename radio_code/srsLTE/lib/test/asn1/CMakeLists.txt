@@ -1,5 +1,5 @@
 #
-# Copyright 2013-2019 Software Radio Systems Limited
+# Copyright 2013-2020 Software Radio Systems Limited
 #
 # This file is part of srsLTE
 #
@@ -19,7 +19,7 @@
 #
 
 add_executable(s1ap_test s1ap_test.cc)
-target_link_libraries(s1ap_test srslte_common srslte_asn1)
+target_link_libraries(s1ap_test srslte_common srslte_asn1 s1ap_asn1)
 add_test(s1ap_test s1ap_test)
 
 add_executable(srslte_asn1_rrc_mcch_test srslte_asn1_rrc_mcch_test.cc)
@@ -51,5 +51,17 @@ target_link_libraries(srslte_asn1_nas_test srslte_common srslte_phy srslte_asn1)
 add_test(srslte_asn1_nas_test srslte_asn1_nas_test)
 
 add_executable(rrc_asn1_test rrc_asn1_test.cc)
-target_link_libraries(rrc_asn1_test rrc_asn1)
+target_link_libraries(rrc_asn1_test rrc_asn1 asn1_utils srslte_common)
 add_test(rrc_asn1_test rrc_asn1_test)
+
+if (ENABLE_5GNR)
+    add_executable(ngap_asn1_test ngap_asn1_test.cc)
+    target_link_libraries(ngap_asn1_test ngap_nr_asn1 srslte_common)
+    add_test(ngap_asn1_test ngap_asn1_test)
+endif(ENABLE_5GNR)
+
+add_executable(rrc_asn1_decoder rrc_asn1_decoder.cc)
+target_link_libraries(rrc_asn1_decoder rrc_asn1)
+
+add_executable(nas_decoder nas_decoder.cc)
+target_link_libraries(nas_decoder srslte_asn1)

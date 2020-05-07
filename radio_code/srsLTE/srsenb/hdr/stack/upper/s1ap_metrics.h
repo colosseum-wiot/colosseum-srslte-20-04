@@ -1,5 +1,5 @@
 /*
- * Copyright 2013-2019 Software Radio Systems Limited
+ * Copyright 2013-2020 Software Radio Systems Limited
  *
  * This file is part of srsLTE.
  *
@@ -22,17 +22,15 @@
 #ifndef SRSENB_S1AP_METRICS_H
 #define SRSENB_S1AP_METRICS_H
 
-
 namespace srsenb {
 
-typedef enum{
+typedef enum {
   S1AP_ATTACHING = 0, // Attempting to create S1 connection
   S1AP_READY,         // S1 connected
   S1AP_ERROR          // Failure
-}S1AP_STATUS_ENUM;
+} S1AP_STATUS_ENUM;
 
-struct s1ap_metrics_t
-{
+struct s1ap_metrics_t {
   S1AP_STATUS_ENUM status;
 };
 

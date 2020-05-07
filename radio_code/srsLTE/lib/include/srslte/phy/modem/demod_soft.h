@@ -1,5 +1,5 @@
 /*
- * Copyright 2013-2019 Software Radio Systems Limited
+ * Copyright 2013-2020 Software Radio Systems Limited
  *
  * This file is part of srsLTE.
  *
@@ -33,23 +33,13 @@
 
 #include <stdint.h>
 
-#include "srslte/config.h"
 #include "modem_table.h"
+#include "srslte/config.h"
 
+SRSLTE_API int srslte_demod_soft_demodulate(srslte_mod_t modulation, const cf_t* symbols, float* llr, int nsymbols);
 
-SRSLTE_API int srslte_demod_soft_demodulate(srslte_mod_t modulation, 
-                                            const cf_t* symbols, 
-                                            float* llr, 
-                                            int nsymbols); 
+SRSLTE_API int srslte_demod_soft_demodulate_s(srslte_mod_t modulation, const cf_t* symbols, short* llr, int nsymbols);
 
-SRSLTE_API int srslte_demod_soft_demodulate_s(srslte_mod_t modulation, 
-                                              const cf_t* symbols, 
-                                              short* llr, 
-                                              int nsymbols); 
-
-SRSLTE_API int srslte_demod_soft_demodulate_b(srslte_mod_t modulation,
-                                              const cf_t* symbols,
-                                              int8_t* llr,
-                                              int nsymbols);
+SRSLTE_API int srslte_demod_soft_demodulate_b(srslte_mod_t modulation, const cf_t* symbols, int8_t* llr, int nsymbols);
 
 #endif // SRSLTE_DEMOD_SOFT_H

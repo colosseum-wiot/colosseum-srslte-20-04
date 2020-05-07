@@ -1,5 +1,5 @@
 /*
- * Copyright 2013-2019 Software Radio Systems Limited
+ * Copyright 2013-2020 Software Radio Systems Limited
  *
  * This file is part of srsLTE.
  *
@@ -30,7 +30,7 @@
 #include "proc_phr.h"
 #include "proc_ra.h"
 #include "proc_sr.h"
-#include "srslte/common/log.h"
+#include "srslte/common/logmap.h"
 #include "srslte/common/mac_pcap.h"
 #include "srslte/common/threads.h"
 #include "srslte/common/timers.h"
@@ -45,17 +45,15 @@ namespace srsue {
 class mac : public mac_interface_phy_lte,
             public mac_interface_rrc,
             public srslte::timer_callback,
-            public srslte::mac_interface_timers,
             public mac_interface_demux
 {
 public:
-  mac(srslte::log* log_);
+  mac(const char* logname);
   ~mac();
-  bool init(phy_interface_mac_lte* phy,
-            rlc_interface_mac*     rlc,
-            rrc_interface_mac*     rrc,
-            srslte::timers*        timers_,
-            stack_interface_mac*   stack);
+  bool init(phy_interface_mac_lte*          phy,
+            rlc_interface_mac*              rlc,
+            rrc_interface_mac*              rrc,
+            srslte::task_handler_interface* stack_);
   void stop();
 
   void get_metrics(mac_metrics_t m[SRSLTE_MAX_CARRIERS]);
@@ -64,9 +62,9 @@ public:
   /* see mac_interface.h for comments */
   void     new_grant_ul(uint32_t cc_idx, mac_grant_ul_t grant, tb_action_ul_t* action);
   void     new_grant_dl(uint32_t cc_idx, mac_grant_dl_t grant, tb_action_dl_t* action);
-  void     new_mch_dl(srslte_pdsch_grant_t phy_grant, tb_action_dl_t* action);
+  void     new_mch_dl(const srslte_pdsch_grant_t& phy_grant, tb_action_dl_t* action);
   void     tb_decoded(uint32_t cc_idx, mac_grant_dl_t grant, bool ack[SRSLTE_MAX_CODEWORDS]);
-  void     bch_decoded_ok(uint8_t* payload, uint32_t len);
+  void     bch_decoded_ok(uint32_t cc_idx, uint8_t* payload, uint32_t len);
   uint16_t get_dl_sched_rnti(uint32_t tti);
   uint16_t get_ul_sched_rnti(uint32_t tti);
 
@@ -104,19 +102,13 @@ public:
 
   /*********** interface for stack ******************/
   void process_pdus();
-  void notify_ra_completed();
 
   void start_pcap(srslte::mac_pcap* pcap);
 
   // Timer callback interface
-  void timer_expired(uint32_t timer_id); 
+  void timer_expired(uint32_t timer_id);
 
   uint32_t get_current_tti();
-
-  // Interface for upper-layer timers
-  srslte::timers::timer* timer_get(uint32_t timer_id);
-  void                   timer_release_id(uint32_t timer_id);
-  uint32_t               timer_get_unique_id();
 
 private:
   void clear_rntis();
@@ -130,21 +122,21 @@ private:
   phy_interface_mac_lte*                     phy_h   = nullptr;
   rlc_interface_mac*                         rlc_h   = nullptr;
   rrc_interface_mac*                         rrc_h   = nullptr;
-  stack_interface_mac*                       stack_h = nullptr;
-  srslte::log*                               log_h;
-  mac_interface_phy_lte::mac_phy_cfg_mbsfn_t phy_mbsfn_cfg;
+  srslte::task_handler_interface*            stack_h = nullptr;
+  srslte::log_ref                            log_h;
+  mac_interface_phy_lte::mac_phy_cfg_mbsfn_t phy_mbsfn_cfg = {};
 
   // RNTI search window scheduling
-  int si_window_length, si_window_start;
-  int ra_window_length, ra_window_start;
-  int p_window_start;
+  int si_window_length = -1, si_window_start = -1;
+  int ra_window_length = -1, ra_window_start = -1;
+  int p_window_start = -1;
 
   // UE-specific RNTIs
   ue_rnti_t uernti;
 
   /* Multiplexing/Demultiplexing Units */
-  mux           mux_unit;
-  demux         demux_unit;
+  mux   mux_unit;
+  demux demux_unit;
 
   /* DL/UL HARQ */
   dl_harq_entity_vector dl_harq;
@@ -152,13 +144,13 @@ private:
   ul_harq_cfg_t         ul_harq_cfg;
 
   /* MAC Uplink-related Procedures */
-  ra_proc       ra_procedure;
-  sr_proc       sr_procedure; 
-  bsr_proc      bsr_procedure; 
-  phr_proc      phr_procedure; 
-  
+  ra_proc  ra_procedure;
+  sr_proc  sr_procedure;
+  bsr_proc bsr_procedure;
+  phr_proc phr_procedure;
+
   /* Buffers for PCH reception (not included in DL HARQ) */
-  const static uint32_t  pch_payload_buffer_sz = 8*1024;
+  const static uint32_t  pch_payload_buffer_sz = 8 * 1024;
   srslte_softbuffer_rx_t pch_softbuffer;
   uint8_t                pch_payload_buffer[pch_payload_buffer_sz];
 
@@ -169,10 +161,13 @@ private:
   srslte::mch_pdu        mch_msg;
 
   /* Functions for MAC Timers */
-  uint32_t        timer_alignment = 0;
-  void            setup_timers(int time_alignment_timer);
-  void            timer_alignment_expire();
-  srslte::timers* timers = nullptr;
+  srslte::timer_handler::unique_timer timer_alignment;
+  void                                setup_timers(int time_alignment_timer);
+  void                                timer_alignment_expire();
+
+  /* Queue to dispatch stack tasks */
+  srslte::task_multiqueue::queue_handler stack_task_dispatch_queue;
+  srslte::byte_buffer_pool*              pool = nullptr;
 
   // pointer to MAC PCAP object
   srslte::mac_pcap* pcap              = nullptr;
@@ -181,6 +176,8 @@ private:
   mac_metrics_t metrics[SRSLTE_MAX_CARRIERS] = {};
 
   bool initialized = false;
+
+  const uint8_t PCELL_CC_IDX = 0;
 };
 
 } // namespace srsue

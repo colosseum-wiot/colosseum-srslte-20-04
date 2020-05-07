@@ -1,5 +1,5 @@
 /*
- * Copyright 2013-2019 Software Radio Systems Limited
+ * Copyright 2013-2020 Software Radio Systems Limited
  *
  * This file is part of srsLTE.
  *
@@ -19,20 +19,20 @@
  *
  */
 
-#include <pthread.h>
 #include "srslte/common/buffer_pool.h"
+#include <pthread.h>
 #include <stdio.h>
 #include <string>
 
-namespace srslte{
+namespace srslte {
 
-byte_buffer_pool *byte_buffer_pool::instance = NULL;
-pthread_mutex_t instance_mutex = PTHREAD_MUTEX_INITIALIZER;
+byte_buffer_pool* byte_buffer_pool::instance = NULL;
+pthread_mutex_t   instance_mutex             = PTHREAD_MUTEX_INITIALIZER;
 
 byte_buffer_pool* byte_buffer_pool::get_instance(int capacity)
 {
   pthread_mutex_lock(&instance_mutex);
-  if(NULL == instance) {
+  if (NULL == instance) {
     instance = new byte_buffer_pool(capacity);
   }
   pthread_mutex_unlock(&instance_mutex);
@@ -42,8 +42,7 @@ byte_buffer_pool* byte_buffer_pool::get_instance(int capacity)
 void byte_buffer_pool::cleanup(void)
 {
   pthread_mutex_lock(&instance_mutex);
-  if(NULL != instance)
-  {
+  if (NULL != instance) {
     delete instance;
     instance = NULL;
   }

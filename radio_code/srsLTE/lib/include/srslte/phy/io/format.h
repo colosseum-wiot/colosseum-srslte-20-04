@@ -1,5 +1,5 @@
 /*
- * Copyright 2013-2019 Software Radio Systems Limited
+ * Copyright 2013-2020 Software Radio Systems Limited
  *
  * This file is part of srsLTE.
  *
@@ -24,12 +24,12 @@
 
 typedef enum {
   SRSLTE_TEXT,
-  SRSLTE_FLOAT, 
-  SRSLTE_COMPLEX_FLOAT, 
-  SRSLTE_COMPLEX_SHORT, 
-  SRSLTE_FLOAT_BIN, 
-  SRSLTE_COMPLEX_FLOAT_BIN, 
-  SRSLTE_COMPLEX_SHORT_BIN  
+  SRSLTE_FLOAT,
+  SRSLTE_COMPLEX_FLOAT,
+  SRSLTE_COMPLEX_SHORT,
+  SRSLTE_FLOAT_BIN,
+  SRSLTE_COMPLEX_FLOAT_BIN,
+  SRSLTE_COMPLEX_SHORT_BIN
 } srslte_datatype_t;
 
 #endif // SRSLTE_FORMAT_H

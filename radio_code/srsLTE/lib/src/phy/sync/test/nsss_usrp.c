@@ -1,5 +1,5 @@
 /*
- * Copyright 2013-2019 Software Radio Systems Limited
+ * Copyright 2013-2020 Software Radio Systems Limited
  *
  * This file is part of srsLTE.
  *
@@ -75,22 +75,22 @@ void parse_args(int argc, char** argv)
         has_cfo_corr = false;
         break;
       case 'c':
-        cfo_fixed = atof(argv[optind]);
+        cfo_fixed = strtof(argv[optind], NULL);
         break;
       case 'g':
-        rf_gain = atof(argv[optind]);
+        rf_gain = strtof(argv[optind], NULL);
         break;
       case 'f':
-        rf_freq = atof(argv[optind]);
+        rf_freq = strtof(argv[optind], NULL);
         break;
       case 't':
-        threshold = atof(argv[optind]);
+        threshold = strtof(argv[optind], NULL);
         break;
       case 'i':
-        cell.n_id_ncell = atoi(argv[optind]);
+        cell.n_id_ncell = (uint32_t)strtol(argv[optind], NULL, 10);
         break;
       case 'n':
-        nof_frames = atoi(argv[optind]);
+        nof_frames = (int)strtol(argv[optind], NULL, 10);
         break;
       case 'v':
         srslte_verbose++;
@@ -141,7 +141,7 @@ int main(int argc, char** argv)
   printf("Set RX gain: %.1f dB\n", srslte_rf_set_rx_gain(&rf, rf_gain));
   printf("Set RX freq: %.2f MHz\n", srslte_rf_set_rx_freq(&rf, 0, rf_freq) / 1000000);
 
-  buffer = malloc(sizeof(cf_t) * input_len * 2);
+  buffer = srslte_vec_cf_malloc(input_len * 2);
   if (!buffer) {
     perror("malloc");
     exit(-1);

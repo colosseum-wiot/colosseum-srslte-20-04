@@ -1,5 +1,5 @@
 /*
- * Copyright 2013-2019 Software Radio Systems Limited
+ * Copyright 2013-2020 Software Radio Systems Limited
  *
  * This file is part of srsLTE.
  *
@@ -38,19 +38,18 @@
 using namespace asn1;
 using namespace asn1::rrc;
 
-int basic_test()
+int meas_obj_test()
 {
   srslte::log_filter log1("RRC");
   log1.set_level(srslte::LOG_LEVEL_DEBUG);
   log1.set_hex_limit(128);
 
-  uint8_t  rrc_msg[]   = {0x08, 0x10, 0x49, 0x3C, 0x0D, 0x97, 0x89, 0x83, 0xC0,
-                       0x84, 0x20, 0x82, 0x08, 0x21, 0x00, 0x01, 0xBC, 0x48};
+  uint8_t rrc_msg[] = {
+      0x08, 0x10, 0x49, 0x3C, 0x0D, 0x97, 0x89, 0x83, 0xC0, 0x84, 0x20, 0x82, 0x08, 0x21, 0x00, 0x01, 0xBC, 0x48};
   uint32_t rrc_msg_len = sizeof(rrc_msg);
   // 0810493C0D978983C084208208210001BC48
 
-  bit_ref bref(&rrc_msg[0], sizeof(rrc_msg));
-  bit_ref bref0(&rrc_msg[0], sizeof(rrc_msg));
+  cbit_ref bref(&rrc_msg[0], sizeof(rrc_msg));
 
   ul_dcch_msg_s ul_dcch_msg;
   ul_dcch_msg.unpack(bref);
@@ -93,7 +92,7 @@ int basic_test()
   bzero(rrc_msg2, rrc_msg_len);
   bit_ref bref2(&rrc_msg2[0], sizeof(rrc_msg2));
   ul_dcch_msg.pack(bref2);
-  TESTASSERT(bref.distance(bref0) == bref2.distance(&rrc_msg2[0]));
+  TESTASSERT(bref.distance() == bref2.distance());
   TESTASSERT(memcmp(rrc_msg2, rrc_msg, rrc_msg_len) == 0);
 
   return 0;
@@ -101,6 +100,6 @@ int basic_test()
 
 int main(int argc, char** argv)
 {
-  TESTASSERT(basic_test() == 0);
+  TESTASSERT(meas_obj_test() == 0);
   return 0;
 }

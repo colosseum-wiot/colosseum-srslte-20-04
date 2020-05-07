@@ -1,5 +1,5 @@
 /*
- * Copyright 2013-2019 Software Radio Systems Limited
+ * Copyright 2013-2020 Software Radio Systems Limited
  *
  * This file is part of srsLTE.
  *
@@ -45,8 +45,11 @@ void srslte_channel_hst_update_srate(srslte_channel_hst_t* q, uint32_t srate)
   }
 }
 
-void srslte_channel_hst_execute(
-    srslte_channel_hst_t* q, cf_t* in, cf_t* out, uint32_t len, const srslte_timestamp_t* ts)
+void srslte_channel_hst_execute(srslte_channel_hst_t*     q,
+                                cf_t*                     in,
+                                cf_t*                     out,
+                                uint32_t                  len,
+                                const srslte_timestamp_t* ts)
 {
   if (q && q->srate_hz) {
     // Convert period from seconds to samples

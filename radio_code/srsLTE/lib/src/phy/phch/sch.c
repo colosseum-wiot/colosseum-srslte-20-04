@@ -1,5 +1,5 @@
 /*
- * Copyright 2013-2019 Software Radio Systems Limited
+ * Copyright 2013-2020 Software Radio Systems Limited
  *
  * This file is part of srsLTE.
  *
@@ -32,67 +32,108 @@
 #include <string.h>
 #include <strings.h>
 
-#define SRSLTE_PDSCH_MAX_TDEC_ITERS         10
+#define SRSLTE_PDSCH_MAX_TDEC_ITERS 10
 
 #ifdef LV_HAVE_SSE
 #include <immintrin.h>
 #endif /* LV_HAVE_SSE */
 
-
 /* 36.213 Table 8.6.3-1: Mapping of HARQ-ACK offset values and the index signalled by higher layers */
-float beta_harq_offset[16] = {2.0, 2.5, 3.125, 4.0, 5.0, 6.250, 8.0, 10.0, 
-                           12.625, 15.875, 20.0, 31.0, 50.0, 80.0, 126.0, -1.0};
-                                  
+static inline float get_beta_harq_offset(uint32_t idx)
+{
+  const float beta_harq_offset[16] = {
+      2.0, 2.5, 3.125, 4.0, 5.0, 6.250, 8.0, 10.0, 12.625, 15.875, 20.0, 31.0, 50.0, 80.0, 126.0, -1.0};
+  float ret = beta_harq_offset[0];
+
+  if (idx < 15) {
+    ret = beta_harq_offset[idx];
+  } else {
+    ERROR("Invalid input %d (min: %d, max: %d)\n", idx, 0, 14);
+  }
+
+  return ret;
+}
+
 /* 36.213 Table 8.6.3-2: Mapping of RI offset values and the index signalled by higher layers */
-float beta_ri_offset[16] = {1.25, 1.625, 2.0, 2.5, 3.125, 4.0, 5.0, 6.25, 8.0, 10.0,
-                           12.625, 15.875, 20.0, -1.0, -1.0, -1.0};
+static inline float get_beta_ri_offset(uint32_t idx)
+{
+  const float beta_ri_offset[16] = {
+      1.25, 1.625, 2.0, 2.5, 3.125, 4.0, 5.0, 6.25, 8.0, 10.0, 12.625, 15.875, 20.0, -1.0, -1.0, -1.0};
+  float ret = beta_ri_offset[0];
+
+  if (idx < 13) {
+    ret = beta_ri_offset[idx];
+  } else {
+    ERROR("Invalid input %d (min: %d, max: %d)\n", idx, 0, 12);
+  }
+
+  return ret;
+}
 
 /* 36.213 Table 8.6.3-3: Mapping of CQI offset values and the index signalled by higher layers */
-float beta_cqi_offset[16] = {-1.0, -1.0, 1.125, 1.25, 1.375, 1.625, 1.750, 2.0, 2.25, 2.5, 2.875, 
-                             3.125, 3.5, 4.0, 5.0, 6.25};
+static inline float get_beta_cqi_offset(uint32_t idx)
+{
+  const float beta_cqi_offset[16] = {
+      -1.0, -1.0, 1.125, 1.25, 1.375, 1.625, 1.750, 2.0, 2.25, 2.5, 2.875, 3.125, 3.5, 4.0, 5.0, 6.25};
+  float ret = beta_cqi_offset[2];
 
+  if (idx > 1 && idx < 16) {
+    ret = beta_cqi_offset[idx];
+  } else {
+    ERROR("Invalid input %d (min: %d, max: %d)\n", idx, 2, 15);
+  }
 
-float srslte_sch_beta_cqi(uint32_t I_cqi) {
+  return ret;
+}
+
+float srslte_sch_beta_cqi(uint32_t I_cqi)
+{
   if (I_cqi < 16) {
-    return beta_cqi_offset[I_cqi];
+    return get_beta_cqi_offset(I_cqi);
   } else {
     return 0;
   }
 }
-                             
-uint32_t srslte_sch_find_Ioffset_ack(float beta) {
-  for (int i=0;i<16;i++) {
-    if (beta_harq_offset[i] >= beta) {
-      return i; 
+
+uint32_t srslte_sch_find_Ioffset_ack(float beta)
+{
+  for (int i = 0; i < 16; i++) {
+    if (get_beta_harq_offset(i) >= beta) {
+      return i;
     }
   }
   return 0;
 }
-                             
-uint32_t srslte_sch_find_Ioffset_ri(float beta) {
-  for (int i=0;i<16;i++) {
-    if (beta_ri_offset[i] >= beta) {
-      return i; 
+
+uint32_t srslte_sch_find_Ioffset_ri(float beta)
+{
+  for (int i = 0; i < 16; i++) {
+    if (get_beta_ri_offset(i) >= beta) {
+      return i;
     }
   }
   return 0;
 }
-                             
-uint32_t srslte_sch_find_Ioffset_cqi(float beta) {
-  for (int i=0;i<16;i++) {
-    if (beta_cqi_offset[i] >= beta) {
-      return i; 
+
+uint32_t srslte_sch_find_Ioffset_cqi(float beta)
+{
+  for (int i = 0; i < 16; i++) {
+    if (get_beta_cqi_offset(i) >= beta) {
+      return i;
     }
   }
   return 0;
 }
-                             
-int srslte_sch_init(srslte_sch_t *q) {
+
+#define SCH_MAX_G_BITS (SRSLTE_MAX_PRB * 12 * 12 * 12)
+
+int srslte_sch_init(srslte_sch_t* q)
+{
   int ret = SRSLTE_ERROR_INVALID_INPUTS;
   if (q) {
     ret = SRSLTE_ERROR;
     bzero(q, sizeof(srslte_sch_t));
-    
+
     if (srslte_crc_init(&q->crc_tb, SRSLTE_LTE_CRC24A, 24)) {
       ERROR("Error initiating CRC\n");
       goto clean;
@@ -112,42 +153,43 @@ int srslte_sch_init(srslte_sch_t *q) {
     }
 
     q->max_iterations = SRSLTE_PDSCH_MAX_TDEC_ITERS;
-    
+
     srslte_rm_turbo_gentables();
-    
+
     // Allocate int16 for reception (LLRs)
-    q->cb_in = srslte_vec_malloc(sizeof(uint8_t) * (SRSLTE_TCOD_MAX_LEN_CB+8)/8);
+    q->cb_in = srslte_vec_u8_malloc((SRSLTE_TCOD_MAX_LEN_CB + 8) / 8);
     if (!q->cb_in) {
       goto clean;
     }
-    
-    q->parity_bits = srslte_vec_malloc(sizeof(uint8_t) * (3 * SRSLTE_TCOD_MAX_LEN_CB + 16) / 8);
+
+    q->parity_bits = srslte_vec_u8_malloc((3 * SRSLTE_TCOD_MAX_LEN_CB + 16) / 8);
     if (!q->parity_bits) {
       goto clean;
-    }  
-    q->temp_g_bits = srslte_vec_malloc(sizeof(uint8_t)*SRSLTE_MAX_PRB*12*12*12);
-    if (!q->temp_g_bits) {
-      goto clean; 
     }
-    bzero(q->temp_g_bits, SRSLTE_MAX_PRB*12*12*12);
-    q->ul_interleaver = srslte_vec_malloc(sizeof(uint32_t)*SRSLTE_MAX_PRB*12*12*12);
+    q->temp_g_bits = srslte_vec_u8_malloc(SCH_MAX_G_BITS);
+    if (!q->temp_g_bits) {
+      goto clean;
+    }
+    bzero(q->temp_g_bits, SRSLTE_MAX_PRB * 12 * 12 * 12);
+    q->ul_interleaver = srslte_vec_u32_malloc(SCH_MAX_G_BITS);
     if (!q->ul_interleaver) {
-      goto clean; 
+      goto clean;
     }
     if (srslte_uci_cqi_init(&q->uci_cqi)) {
       goto clean;
     }
-    
+
     ret = SRSLTE_SUCCESS;
   }
-clean: 
+clean:
   if (ret == SRSLTE_ERROR) {
     srslte_sch_free(q);
   }
-  return ret; 
+  return ret;
 }
 
-void srslte_sch_free(srslte_sch_t *q) {
+void srslte_sch_free(srslte_sch_t* q)
+{
   srslte_rm_turbo_free_tables();
 
   if (q->cb_in) {
@@ -168,7 +210,8 @@ void srslte_sch_free(srslte_sch_t *q) {
   bzero(q, sizeof(srslte_sch_t));
 }
 
-void srslte_sch_set_max_noi(srslte_sch_t *q, uint32_t max_iterations) {
+void srslte_sch_set_max_noi(srslte_sch_t* q, uint32_t max_iterations)
+{
   q->max_iterations = max_iterations;
 }
 
@@ -180,13 +223,18 @@ float srslte_sch_last_noi(srslte_sch_t* q)
 /* Encode a transport block according to 36.212 5.3.2
  *
  */
-static int encode_tb_off(srslte_sch_t *q, 
-                     srslte_softbuffer_tx_t *softbuffer, srslte_cbsegm_t *cb_segm, 
-                     uint32_t Qm, uint32_t rv, uint32_t nof_e_bits,  
-                     uint8_t *data, uint8_t *e_bits, uint32_t w_offset) 
+static int encode_tb_off(srslte_sch_t*           q,
+                         srslte_softbuffer_tx_t* softbuffer,
+                         srslte_cbsegm_t*        cb_segm,
+                         uint32_t                Qm,
+                         uint32_t                rv,
+                         uint32_t                nof_e_bits,
+                         uint8_t*                data,
+                         uint8_t*                e_bits,
+                         uint32_t                w_offset)
 {
   uint32_t i;
-  uint32_t cb_len=0, rp=0, wp=0, rlen=0, n_e=0;
+  uint32_t cb_len = 0, rp = 0, wp = 0, rlen = 0, n_e = 0;
   int      ret = SRSLTE_ERROR_INVALID_INPUTS;
 
   if (q != NULL && e_bits != NULL && cb_segm != NULL && softbuffer != NULL) {
@@ -198,14 +246,14 @@ static int encode_tb_off(srslte_sch_t *q,
 
     if (cb_segm->C > softbuffer->max_cb) {
       ERROR("Error number of CB to encode (%d) exceeds soft buffer size (%d CBs)\n", cb_segm->C, softbuffer->max_cb);
-      return -1; 
+      return -1;
     }
 
     uint32_t Gp = nof_e_bits / Qm;
-    
+
     uint32_t gamma = Gp;
     if (cb_segm->C > 0) {
-      gamma = Gp%cb_segm->C;
+      gamma = Gp % cb_segm->C;
     }
 
     /* Reset TB CRC */
@@ -215,13 +263,13 @@ static int encode_tb_off(srslte_sch_t *q,
     rp = 0;
     for (i = 0; i < cb_segm->C; i++) {
 
-      uint32_t cblen_idx; 
+      uint32_t cblen_idx;
       /* Get read lengths */
       if (i < cb_segm->C2) {
-        cb_len = cb_segm->K2;
+        cb_len    = cb_segm->K2;
         cblen_idx = cb_segm->K2_idx;
       } else {
-        cb_len = cb_segm->K1;
+        cb_len    = cb_segm->K1;
         cblen_idx = cb_segm->K1_idx;
       }
       if (cb_segm->C > 1) {
@@ -230,27 +278,25 @@ static int encode_tb_off(srslte_sch_t *q,
         rlen = cb_len;
       }
       if (i <= cb_segm->C - gamma - 1) {
-        n_e = Qm * (Gp/cb_segm->C);
+        n_e = Qm * (Gp / cb_segm->C);
       } else {
-        n_e = Qm * ((uint32_t) ceilf((float) Gp/cb_segm->C));
+        n_e = Qm * ((uint32_t)ceilf((float)Gp / cb_segm->C));
       }
 
-      INFO("CB#%d: cb_len: %d, rlen: %d, wp: %d, rp: %d, E: %d\n", i,
-          cb_len, rlen, wp, rp, n_e);
+      INFO("CB#%d: cb_len: %d, rlen: %d, wp: %d, rp: %d, E: %d\n", i, cb_len, rlen, wp, rp, n_e);
 
       if (data) {
         bool last_cb = false;
 
         /* Copy data to another buffer, making space for the Codeblock CRC */
         if (i < cb_segm->C - 1) {
-          // Copy data 
-          memcpy(q->cb_in, &data[rp/8], rlen * sizeof(uint8_t)/8);
+          // Copy data
+          memcpy(q->cb_in, &data[rp / 8], rlen * sizeof(uint8_t) / 8);
         } else {
-          INFO("Last CB, appending parity: %d from %d and 24 to %d\n",
-              rlen - 24, rp, rlen - 24);
-          
+          INFO("Last CB, appending parity: %d from %d and 24 to %d\n", rlen - 24, rp, rlen - 24);
+
           /* Append Transport Block parity bits to the last CB */
-          memcpy(q->cb_in, &data[rp/8], (rlen - 24) * sizeof(uint8_t)/8);
+          memcpy(q->cb_in, &data[rp / 8], (rlen - 24) * sizeof(uint8_t) / 8);
           last_cb = true;
         }
 
@@ -265,12 +311,17 @@ static int encode_tb_off(srslte_sch_t *q,
                                cblen_idx,
                                last_cb);
       }
-      DEBUG("RM cblen_idx=%d, n_e=%d, wp=%d, nof_e_bits=%d\n",cblen_idx, n_e, wp, nof_e_bits);
-      
+      DEBUG("RM cblen_idx=%d, n_e=%d, wp=%d, nof_e_bits=%d\n", cblen_idx, n_e, wp, nof_e_bits);
+
       /* Rate matching */
-      if (srslte_rm_turbo_tx_lut(softbuffer->buffer_b[i], q->cb_in, q->parity_bits, 
-        &e_bits[(wp+w_offset)/8], cblen_idx, n_e, (wp+w_offset)%8, rv))
-      {
+      if (srslte_rm_turbo_tx_lut(softbuffer->buffer_b[i],
+                                 q->cb_in,
+                                 q->parity_bits,
+                                 &e_bits[(wp + w_offset) / 8],
+                                 cblen_idx,
+                                 n_e,
+                                 (wp + w_offset) % 8,
+                                 rv)) {
         ERROR("Error in rate matching\n");
         return SRSLTE_ERROR;
       }
@@ -279,7 +330,7 @@ static int encode_tb_off(srslte_sch_t *q,
       rp += rlen;
       wp += n_e;
     }
-    
+
     INFO("END CB#%d: wp: %d, rp: %d\n", i, wp, rp);
     ret = SRSLTE_SUCCESS;
   } else {
@@ -288,22 +339,30 @@ static int encode_tb_off(srslte_sch_t *q,
   return ret;
 }
 
-static int encode_tb(srslte_sch_t *q, 
-                     srslte_softbuffer_tx_t *soft_buffer, srslte_cbsegm_t *cb_segm, 
-                     uint32_t Qm, uint32_t rv, uint32_t nof_e_bits,  
-                     uint8_t *data, uint8_t *e_bits) 
+static int encode_tb(srslte_sch_t*           q,
+                     srslte_softbuffer_tx_t* soft_buffer,
+                     srslte_cbsegm_t*        cb_segm,
+                     uint32_t                Qm,
+                     uint32_t                rv,
+                     uint32_t                nof_e_bits,
+                     uint8_t*                data,
+                     uint8_t*                e_bits)
 {
   return encode_tb_off(q, soft_buffer, cb_segm, Qm, rv, nof_e_bits, data, e_bits, 0);
 }
 
-bool decode_tb_cb(srslte_sch_t *q, 
-                     srslte_softbuffer_rx_t *softbuffer, srslte_cbsegm_t *cb_segm, 
-                     uint32_t Qm, uint32_t rv, uint32_t nof_e_bits, 
-                     void *e_bits, uint8_t *data)
+bool decode_tb_cb(srslte_sch_t*           q,
+                  srslte_softbuffer_rx_t* softbuffer,
+                  srslte_cbsegm_t*        cb_segm,
+                  uint32_t                Qm,
+                  uint32_t                rv,
+                  uint32_t                nof_e_bits,
+                  void*                   e_bits,
+                  uint8_t*                data)
 {
 
-  int8_t *e_bits_b  = e_bits;
-  int16_t *e_bits_s = e_bits;
+  int8_t*  e_bits_b = e_bits;
+  int16_t* e_bits_s = e_bits;
 
   if (cb_segm->C > SRSLTE_MAX_CODEBLOCKS) {
     ERROR("Error SRSLTE_MAX_CODEBLOCKS=%d\n", SRSLTE_MAX_CODEBLOCKS);
@@ -312,29 +371,28 @@ bool decode_tb_cb(srslte_sch_t *q,
 
   q->avg_iterations = 0;
 
-  for (int cb_idx=0;cb_idx<cb_segm->C;cb_idx++)
-  {
+  for (int cb_idx = 0; cb_idx < cb_segm->C; cb_idx++) {
     /* Do not process blocks with CRC Ok */
     if (softbuffer->cb_crc[cb_idx] == false) {
 
-      uint32_t cb_len     = cb_idx<cb_segm->C1?cb_segm->K1:cb_segm->K2;
-      uint32_t cb_len_idx = cb_idx<cb_segm->C1?cb_segm->K1_idx:cb_segm->K2_idx;
+      uint32_t cb_len     = cb_idx < cb_segm->C1 ? cb_segm->K1 : cb_segm->K2;
+      uint32_t cb_len_idx = cb_idx < cb_segm->C1 ? cb_segm->K1_idx : cb_segm->K2_idx;
 
-      uint32_t rlen       = cb_segm->C==1?cb_len:(cb_len-24);
-      uint32_t Gp         = nof_e_bits / Qm;
-      uint32_t gamma      = cb_segm->C>0?Gp%cb_segm->C:Gp;
-      uint32_t n_e        = Qm * (Gp/cb_segm->C);
+      uint32_t rlen  = cb_segm->C == 1 ? cb_len : (cb_len - 24);
+      uint32_t Gp    = nof_e_bits / Qm;
+      uint32_t gamma = cb_segm->C > 0 ? Gp % cb_segm->C : Gp;
+      uint32_t n_e   = Qm * (Gp / cb_segm->C);
 
-      uint32_t rp   = cb_idx*n_e;
+      uint32_t rp   = cb_idx * n_e;
       uint32_t n_e2 = n_e;
 
       if (cb_idx > cb_segm->C - gamma) {
-        n_e2 = n_e+Qm;
-        rp   = (cb_segm->C - gamma)*n_e + (cb_idx-(cb_segm->C - gamma))*n_e2;
+        n_e2 = n_e + Qm;
+        rp   = (cb_segm->C - gamma) * n_e + (cb_idx - (cb_segm->C - gamma)) * n_e2;
       }
 
       if (q->llr_is_8bit) {
-        if (srslte_rm_turbo_rx_lut_8bit(&e_bits_b[rp], (int8_t*) softbuffer->buffer_f[cb_idx], n_e2, cb_len_idx, rv)) {
+        if (srslte_rm_turbo_rx_lut_8bit(&e_bits_b[rp], (int8_t*)softbuffer->buffer_f[cb_idx], n_e2, cb_len_idx, rv)) {
           ERROR("Error in rate matching\n");
           return SRSLTE_ERROR;
         }
@@ -348,33 +406,33 @@ bool decode_tb_cb(srslte_sch_t *q,
       srslte_tdec_new_cb(&q->decoder, cb_len);
 
       // Run iterations and use CRC for early stopping
-      bool early_stop = false;
-      uint32_t cb_noi = 0;
+      bool     early_stop = false;
+      uint32_t cb_noi     = 0;
       do {
         if (q->llr_is_8bit) {
-          srslte_tdec_iteration_8bit(&q->decoder, (int8_t*) softbuffer->buffer_f[cb_idx], &data[cb_idx*rlen/8]);
+          srslte_tdec_iteration_8bit(&q->decoder, (int8_t*)softbuffer->buffer_f[cb_idx], &data[cb_idx * rlen / 8]);
         } else {
-          srslte_tdec_iteration(&q->decoder, softbuffer->buffer_f[cb_idx], &data[cb_idx*rlen/8]);
+          srslte_tdec_iteration(&q->decoder, softbuffer->buffer_f[cb_idx], &data[cb_idx * rlen / 8]);
         }
         q->avg_iterations++;
         cb_noi++;
 
-        uint32_t len_crc;
+        uint32_t      len_crc;
         srslte_crc_t* crc_ptr;
 
         if (cb_segm->C > 1) {
           len_crc = cb_len;
           crc_ptr = &q->crc_cb;
         } else {
-          len_crc = cb_segm->tbs+24;
+          len_crc = cb_segm->tbs + 24;
           crc_ptr = &q->crc_tb;
         }
 
         // CRC is OK
-        if (!srslte_crc_checksum_byte(crc_ptr, &data[cb_idx*rlen/8], len_crc)) {
+        if (!srslte_crc_checksum_byte(crc_ptr, &data[cb_idx * rlen / 8], len_crc)) {
 
           softbuffer->cb_crc[cb_idx] = true;
-          early_stop = true;
+          early_stop                 = true;
 
           // CRC is error and exceeded maximum iterations for this CB.
           // Early stop the whole transport block.
@@ -383,13 +441,20 @@ bool decode_tb_cb(srslte_sch_t *q,
       } while (cb_noi < q->max_iterations && !early_stop);
 
       INFO("CB %d: rp=%d, n_e=%d, cb_len=%d, CRC=%s, rlen=%d, iterations=%d/%d\n",
-           cb_idx, rp, n_e2, cb_len, early_stop?"OK":"KO", rlen, cb_noi, q->max_iterations);
+           cb_idx,
+           rp,
+           n_e2,
+           cb_len,
+           early_stop ? "OK" : "KO",
+           rlen,
+           cb_noi,
+           q->max_iterations);
 
     } else {
       // Copy decoded data from previous transmissions
-      uint32_t cb_len     = cb_idx<cb_segm->C1?cb_segm->K1:cb_segm->K2;
-      uint32_t rlen       = cb_segm->C==1?cb_len:(cb_len-24);
-      memcpy(&data[cb_idx*rlen/8], softbuffer->data[cb_idx], rlen/8 * sizeof(uint8_t));
+      uint32_t cb_len = cb_idx < cb_segm->C1 ? cb_segm->K1 : cb_segm->K2;
+      uint32_t rlen   = cb_segm->C == 1 ? cb_len : (cb_len - 24);
+      memcpy(&data[cb_idx * rlen / 8], softbuffer->data[cb_idx], rlen / 8 * sizeof(uint8_t));
     }
   }
 
@@ -402,9 +467,9 @@ bool decode_tb_cb(srslte_sch_t *q,
   if (!softbuffer->tb_crc) {
     for (int i = 0; i < cb_segm->C; i++) {
       if (softbuffer->cb_crc[i]) {
-        uint32_t cb_len     = i<cb_segm->C1?cb_segm->K1:cb_segm->K2;
-        uint32_t rlen       = cb_segm->C==1?cb_len:(cb_len-24);
-        memcpy(softbuffer->data[i], &data[i * rlen / 8], rlen/8 * sizeof(uint8_t));
+        uint32_t cb_len = i < cb_segm->C1 ? cb_segm->K1 : cb_segm->K2;
+        uint32_t rlen   = cb_segm->C == 1 ? cb_len : (cb_len - 24);
+        memcpy(softbuffer->data[i], &data[i * rlen / 8], rlen / 8 * sizeof(uint8_t));
       }
     }
   }
@@ -435,49 +500,45 @@ static int decode_tb(srslte_sch_t*           q,
                      int16_t*                e_bits,
                      uint8_t*                data)
 {
-  
-  if (q            != NULL && 
-      data         != NULL &&       
-      softbuffer   != NULL &&
-      e_bits       != NULL &&
-      cb_segm      != NULL)
-  {
-    
+
+  if (q != NULL && data != NULL && softbuffer != NULL && e_bits != NULL && cb_segm != NULL) {
+
     if (cb_segm->tbs == 0 || cb_segm->C == 0) {
       return SRSLTE_SUCCESS;
     }
-    
+
     if (cb_segm->F) {
       fprintf(stderr, "Error filler bits are not supported. Use standard TBS\n");
       return SRSLTE_ERROR_INVALID_INPUTS;
     }
 
     if (cb_segm->C > softbuffer->max_cb) {
-      fprintf(stderr, "Error number of CB to decode (%d) exceeds soft buffer size (%d CBs)\n", cb_segm->C,
+      fprintf(stderr,
+              "Error number of CB to decode (%d) exceeds soft buffer size (%d CBs)\n",
+              cb_segm->C,
               softbuffer->max_cb);
       return SRSLTE_ERROR_INVALID_INPUTS;
     }
-        
-    bool crc_ok = true; 
 
-    data[cb_segm->tbs/8+0] = 0; 
-    data[cb_segm->tbs/8+1] = 0; 
-    data[cb_segm->tbs/8+2] = 0; 
-    
+    bool crc_ok = true;
+
+    data[cb_segm->tbs / 8 + 0] = 0;
+    data[cb_segm->tbs / 8 + 1] = 0;
+    data[cb_segm->tbs / 8 + 2] = 0;
+
     // Process Codeblocks
     crc_ok = decode_tb_cb(q, softbuffer, cb_segm, Qm, rv, nof_e_bits, e_bits, data);
 
     if (crc_ok) {
 
       uint32_t par_rx = 0, par_tx = 0;
-  
+
       // Compute transport block CRC
       par_rx = srslte_crc_checksum_byte(&q->crc_tb, data, cb_segm->tbs);
 
       // check parity bits
-      par_tx = ((uint32_t) data[cb_segm->tbs/8+0])<<16  | 
-               ((uint32_t) data[cb_segm->tbs/8+1])<<8   | 
-               ((uint32_t) data[cb_segm->tbs/8+2]);
+      par_tx = ((uint32_t)data[cb_segm->tbs / 8 + 0]) << 16 | ((uint32_t)data[cb_segm->tbs / 8 + 1]) << 8 |
+               ((uint32_t)data[cb_segm->tbs / 8 + 2]);
 
       if (par_rx == par_tx && par_rx) {
         INFO("TB decoded OK\n");
@@ -487,8 +548,8 @@ static int decode_tb(srslte_sch_t*           q,
         return SRSLTE_ERROR;
       }
     } else {
-      return SRSLTE_ERROR; 
-    }        
+      return SRSLTE_ERROR;
+    }
   } else {
     ERROR("Missing inputs: data=%d, softbuffer=%d, e_bits=%d, cb_segm=%d\n",
           data != 0,
@@ -504,8 +565,12 @@ int srslte_dlsch_decode(srslte_sch_t* q, srslte_pdsch_cfg_t* cfg, int16_t* e_bit
   return srslte_dlsch_decode2(q, cfg, e_bits, data, 0, 1);
 }
 
-int srslte_dlsch_decode2(
-    srslte_sch_t* q, srslte_pdsch_cfg_t* cfg, int16_t* e_bits, uint8_t* data, int tb_idx, uint32_t nof_layers)
+int srslte_dlsch_decode2(srslte_sch_t*       q,
+                         srslte_pdsch_cfg_t* cfg,
+                         int16_t*            e_bits,
+                         uint8_t*            data,
+                         int                 tb_idx,
+                         uint32_t            nof_layers)
 {
   uint32_t Nl = 1;
 
@@ -546,8 +611,12 @@ int srslte_dlsch_encode(srslte_sch_t* q, srslte_pdsch_cfg_t* cfg, uint8_t* data,
   return srslte_dlsch_encode2(q, cfg, data, e_bits, 0, 1);
 }
 
-int srslte_dlsch_encode2(
-    srslte_sch_t* q, srslte_pdsch_cfg_t* cfg, uint8_t* data, uint8_t* e_bits, int tb_idx, uint32_t nof_layers)
+int srslte_dlsch_encode2(srslte_sch_t*       q,
+                         srslte_pdsch_cfg_t* cfg,
+                         uint8_t*            data,
+                         uint8_t*            e_bits,
+                         int                 tb_idx,
+                         uint32_t            nof_layers)
 {
   uint32_t Nl = 1;
 
@@ -577,38 +646,47 @@ int srslte_dlsch_encode2(
 /* Compute the interleaving function on-the-fly, because it depends on number of RI bits
  * Profiling show that the computation of this matrix is neglegible.
  */
-static void ulsch_interleave_gen(uint32_t H_prime_total, uint32_t N_pusch_symbs, uint32_t Qm,
-                                 uint8_t *ri_present, uint32_t *interleaver_lut)
+static void ulsch_interleave_gen(uint32_t  H_prime_total,
+                                 uint32_t  N_pusch_symbs,
+                                 uint32_t  Qm,
+                                 uint8_t*  ri_present,
+                                 uint32_t* interleaver_lut)
 {
-  uint32_t rows = H_prime_total/N_pusch_symbs;
+  uint32_t rows = H_prime_total / N_pusch_symbs;
   uint32_t cols = N_pusch_symbs;
-  uint32_t idx = 0;
-  for(uint32_t j=0; j<rows; j++) {        
-    for(uint32_t i=0; i<cols; i++) {
-      for(uint32_t k=0; k<Qm; k++) {
-        if (ri_present[j*Qm + i*rows*Qm + k]) {
-          interleaver_lut[j*Qm + i*rows*Qm + k] = 0; 
+  uint32_t idx  = 0;
+  for (uint32_t j = 0; j < rows; j++) {
+    for (uint32_t i = 0; i < cols; i++) {
+      for (uint32_t k = 0; k < Qm; k++) {
+        if (ri_present && ri_present[j * Qm + i * rows * Qm + k]) {
+          interleaver_lut[j * Qm + i * rows * Qm + k] = 0;
         } else {
-          interleaver_lut[j*Qm + i*rows*Qm + k] = idx;
-          idx++;                  
+          interleaver_lut[j * Qm + i * rows * Qm + k] = idx;
+          idx++;
         }
       }
     }
   }
 }
 
-static void ulsch_interleave_qm2(const uint8_t *g_bits, uint32_t rows, uint32_t cols, uint8_t *q_bits, uint32_t ri_min_row, const uint8_t *ri_present) {
+static void ulsch_interleave_qm2(const uint8_t* g_bits,
+                                 uint32_t       rows,
+                                 uint32_t       cols,
+                                 uint8_t*       q_bits,
+                                 uint32_t       ri_min_row,
+                                 const uint8_t* ri_present)
+{
   uint32_t bit_read_idx = 0;
 
   for (uint32_t j = 0; j < ri_min_row; j++) {
     for (uint32_t i = 0; i < cols; i++) {
       uint32_t k = (i * rows + j) * 2;
 
-      uint32_t read_byte_idx = bit_read_idx / 8;
-      uint32_t read_bit_idx = bit_read_idx % 8;
+      uint32_t read_byte_idx  = bit_read_idx / 8;
+      uint32_t read_bit_idx   = bit_read_idx % 8;
       uint32_t write_byte_idx = k / 8;
-      uint32_t write_bit_idx = k % 8;
-      uint8_t w = (g_bits[read_byte_idx] >> (6 - read_bit_idx)) & (uint8_t) 0x03;
+      uint32_t write_bit_idx  = k % 8;
+      uint8_t  w              = (g_bits[read_byte_idx] >> (6 - read_bit_idx)) & (uint8_t)0x03;
       q_bits[write_byte_idx] |= w << (6 - write_bit_idx);
 
       bit_read_idx += 2;
@@ -622,10 +700,10 @@ static void ulsch_interleave_qm2(const uint8_t *g_bits, uint32_t rows, uint32_t 
       if (ri_present[k]) {
         /* do nothing */
       } else {
-        uint32_t read_byte_idx = bit_read_idx / 8;
-        uint32_t read_bit_idx = bit_read_idx % 8;
+        uint32_t read_byte_idx  = bit_read_idx / 8;
+        uint32_t read_bit_idx   = bit_read_idx % 8;
         uint32_t write_byte_idx = k / 8;
-        uint32_t write_bit_idx = k % 8;
+        uint32_t write_bit_idx  = k % 8;
         uint8_t  w              = (g_bits[read_byte_idx] >> (6 - read_bit_idx)) & (uint8_t)0x03;
         q_bits[write_byte_idx] |= w << (6 - write_bit_idx);
 
@@ -635,16 +713,22 @@ static void ulsch_interleave_qm2(const uint8_t *g_bits, uint32_t rows, uint32_t 
   }
 }
 
-static void ulsch_interleave_qm4(uint8_t *g_bits, uint32_t rows, uint32_t cols, uint8_t *q_bits, uint32_t ri_min_row, const uint8_t *ri_present) {
+static void ulsch_interleave_qm4(uint8_t*       g_bits,
+                                 uint32_t       rows,
+                                 uint32_t       cols,
+                                 uint8_t*       q_bits,
+                                 uint32_t       ri_min_row,
+                                 const uint8_t* ri_present)
+{
   uint32_t bit_read_idx = 0;
-  
+
   for (uint32_t j = 0; j < ri_min_row; j++) {
     int32_t i = 0;
 
 #ifdef DOES_NOT_WORK
 #ifndef HAVE_NEON
-    __m128i _counter = _mm_slli_epi32(_mm_add_epi32(_mm_mullo_epi32(_counter0,_rows),_mm_set1_epi32(j)), 2);
-    uint8_t *_g_bits = &g_bits[bit_read_idx/8];
+    __m128i  _counter = _mm_slli_epi32(_mm_add_epi32(_mm_mullo_epi32(_counter0, _rows), _mm_set1_epi32(j)), 2);
+    uint8_t* _g_bits  = &g_bits[bit_read_idx / 8];
 
     /* First bits are aligned to byte */
     if (0 == (bit_read_idx & 0x3)) {
@@ -654,8 +738,8 @@ static void ulsch_interleave_qm4(uint8_t *g_bits, uint32_t rows, uint32_t cols, 
         uint8_t w2 = *(_g_bits++);
 
         __m128i _write_byte_idx = _mm_srli_epi32(_counter, 3);
-        __m128i _write_bit_idx = _mm_and_si128(_counter, _7);
-        __m128i _write_shift = _mm_sub_epi32(_4, _write_bit_idx);
+        __m128i _write_bit_idx  = _mm_and_si128(_counter, _7);
+        __m128i _write_shift    = _mm_sub_epi32(_4, _write_bit_idx);
 
         q_bits[_mm_extract_epi32(_write_byte_idx, 0)] |= (w1 >> 0x4) << _mm_extract_epi32(_write_shift, 0);
         q_bits[_mm_extract_epi32(_write_byte_idx, 1)] |= (w1 & 0xf) << _mm_extract_epi32(_write_shift, 1);
@@ -666,8 +750,8 @@ static void ulsch_interleave_qm4(uint8_t *g_bits, uint32_t rows, uint32_t cols, 
     } else {
       for (; i < (cols - 3); i += 4) {
         __m128i _write_byte_idx = _mm_srli_epi32(_counter, 3);
-        __m128i _write_bit_idx = _mm_and_si128(_counter, _7);
-        __m128i _write_shift = _mm_sub_epi32(_4, _write_bit_idx);
+        __m128i _write_bit_idx  = _mm_and_si128(_counter, _7);
+        __m128i _write_shift    = _mm_sub_epi32(_4, _write_bit_idx);
 
         uint8_t w1 = *(_g_bits);
         uint8_t w2 = *(_g_bits++);
@@ -681,18 +765,18 @@ static void ulsch_interleave_qm4(uint8_t *g_bits, uint32_t rows, uint32_t cols, 
       }
     }
     bit_read_idx += i * 4;
-  #endif /* HAVE_NEON */
+#endif /* HAVE_NEON */
 #endif /* LV_HAVE_SSE */
 
     /* Spare bits */
     for (; i < cols; i++) {
       uint32_t k = (i * rows + j) * 4;
 
-      uint32_t read_byte_idx = bit_read_idx / 8;
-      uint32_t read_bit_idx = bit_read_idx % 8;
+      uint32_t read_byte_idx  = bit_read_idx / 8;
+      uint32_t read_bit_idx   = bit_read_idx % 8;
       uint32_t write_byte_idx = k / 8;
-      uint32_t write_bit_idx = k % 8;
-      uint8_t w = (g_bits[read_byte_idx] >> (4 - read_bit_idx)) & (uint8_t) 0x0f;
+      uint32_t write_bit_idx  = k % 8;
+      uint8_t  w              = (g_bits[read_byte_idx] >> (4 - read_bit_idx)) & (uint8_t)0x0f;
       q_bits[write_byte_idx] |= w << (4 - write_bit_idx);
 
       bit_read_idx += 4;
@@ -707,50 +791,50 @@ static void ulsch_interleave_qm4(uint8_t *g_bits, uint32_t rows, uint32_t cols, 
       if (ri_present[k]) {
         /* do nothing */
       } else {
-        uint32_t read_byte_idx = bit_read_idx / 8;
-        uint32_t read_bit_idx = bit_read_idx % 8;
+        uint32_t read_byte_idx  = bit_read_idx / 8;
+        uint32_t read_bit_idx   = bit_read_idx % 8;
         uint32_t write_byte_idx = k / 8;
-        uint32_t write_bit_idx = k % 8;
-        uint8_t w = (g_bits[read_byte_idx] >> (4 - read_bit_idx)) & (uint8_t) 0x0f;
+        uint32_t write_bit_idx  = k % 8;
+        uint8_t  w              = (g_bits[read_byte_idx] >> (4 - read_bit_idx)) & (uint8_t)0x0f;
         q_bits[write_byte_idx] |= w << (4 - write_bit_idx);
 
         bit_read_idx += 4;
       }
     }
-
   }
 }
 
-static void ulsch_interleave_qm6(const uint8_t *g_bits,
-                                 uint32_t rows,
-                                 uint32_t cols,
-                                 uint8_t *q_bits,
-                                 uint32_t ri_min_row,
-                                 const uint8_t *ri_present) {
+static void ulsch_interleave_qm6(const uint8_t* g_bits,
+                                 uint32_t       rows,
+                                 uint32_t       cols,
+                                 uint8_t*       q_bits,
+                                 uint32_t       ri_min_row,
+                                 const uint8_t* ri_present)
+{
   uint32_t bit_read_idx = 0;
 
   for (uint32_t j = 0; j < ri_min_row; j++) {
     for (uint32_t i = 0; i < cols; i++) {
       uint32_t k = (i * rows + j) * 6;
 
-      uint32_t read_byte_idx = bit_read_idx / 8;
-      uint32_t read_bit_idx = bit_read_idx % 8;
+      uint32_t read_byte_idx  = bit_read_idx / 8;
+      uint32_t read_bit_idx   = bit_read_idx % 8;
       uint32_t write_byte_idx = k / 8;
-      uint32_t write_bit_idx = k % 8;
-      uint8_t w;
+      uint32_t write_bit_idx  = k % 8;
+      uint8_t  w;
 
       switch (read_bit_idx) {
         case 0:
           w = g_bits[read_byte_idx] >> 2;
           break;
         case 2:
-          w = g_bits[read_byte_idx] & (uint8_t) 0x3f;
+          w = g_bits[read_byte_idx] & (uint8_t)0x3f;
           break;
         case 4:
-          w = ((g_bits[read_byte_idx] << 2) | (g_bits[read_byte_idx + 1] >> 6)) & (uint8_t) 0x3f;
+          w = ((g_bits[read_byte_idx] << 2) | (g_bits[read_byte_idx + 1] >> 6)) & (uint8_t)0x3f;
           break;
         case 6:
-          w = ((g_bits[read_byte_idx] << 4) | (g_bits[read_byte_idx + 1] >> 4)) & (uint8_t) 0x3f;
+          w = ((g_bits[read_byte_idx] << 4) | (g_bits[read_byte_idx + 1] >> 4)) & (uint8_t)0x3f;
           break;
         default:
           w = 0;
@@ -772,7 +856,7 @@ static void ulsch_interleave_qm6(const uint8_t *g_bits,
           q_bits[write_byte_idx + 1] |= w << 4;
           break;
         default:
-          /* Do nothing */;
+            /* Do nothing */;
       }
 
       bit_read_idx += 6;
@@ -786,24 +870,24 @@ static void ulsch_interleave_qm6(const uint8_t *g_bits,
       if (ri_present[k]) {
         /* do nothing */
       } else {
-        uint32_t read_byte_idx = bit_read_idx / 8;
-        uint32_t read_bit_idx = bit_read_idx % 8;
+        uint32_t read_byte_idx  = bit_read_idx / 8;
+        uint32_t read_bit_idx   = bit_read_idx % 8;
         uint32_t write_byte_idx = k / 8;
-        uint32_t write_bit_idx = k % 8;
-        uint8_t w;
+        uint32_t write_bit_idx  = k % 8;
+        uint8_t  w;
 
         switch (read_bit_idx) {
           case 0:
             w = g_bits[read_byte_idx] >> 2;
             break;
           case 2:
-            w = g_bits[read_byte_idx] & (uint8_t) 0x3f;
+            w = g_bits[read_byte_idx] & (uint8_t)0x3f;
             break;
           case 4:
-            w = ((g_bits[read_byte_idx] << 2) | (g_bits[read_byte_idx + 1] >> 6)) & (uint8_t) 0x3f;
+            w = ((g_bits[read_byte_idx] << 2) | (g_bits[read_byte_idx + 1] >> 6)) & (uint8_t)0x3f;
             break;
           case 6:
-            w = ((g_bits[read_byte_idx] << 4) | (g_bits[read_byte_idx + 1] >> 4)) & (uint8_t) 0x3f;
+            w = ((g_bits[read_byte_idx] << 4) | (g_bits[read_byte_idx + 1] >> 4)) & (uint8_t)0x3f;
             break;
           default:
             w = 0;
@@ -825,7 +909,7 @@ static void ulsch_interleave_qm6(const uint8_t *g_bits,
             q_bits[write_byte_idx + 1] |= w << 4;
             break;
           default:
-            /* Do nothing */;
+              /* Do nothing */;
         }
 
         bit_read_idx += 6;
@@ -844,15 +928,23 @@ static void ulsch_interleave(uint8_t*          g_bits,
                              uint32_t          nof_ri_bits,
                              uint8_t*          ri_present)
 {
+  if (N_pusch_symbs == 0 || Qm == 0 || H_prime_total == 0 || H_prime_total < N_pusch_symbs) {
+    ERROR("Invalid input: N_pusch_symbs=%d, Qm=%d, H_prime_total=%d, N_pusch_symbs=%d\n",
+          N_pusch_symbs,
+          Qm,
+          H_prime_total,
+          N_pusch_symbs);
+    return;
+  }
 
-  const uint32_t nof_bits = H_prime_total * Qm;
-  uint32_t rows = H_prime_total / N_pusch_symbs;
-  uint32_t cols = N_pusch_symbs;
-  uint32_t ri_min_row = rows;
+  const uint32_t nof_bits   = H_prime_total * Qm;
+  uint32_t       rows       = H_prime_total / N_pusch_symbs;
+  uint32_t       cols       = N_pusch_symbs;
+  uint32_t       ri_min_row = rows;
 
   // Prepare ri_bits for fast search using temp_buffer
   if (nof_ri_bits > 0) {
-    for (uint32_t i=0;i<nof_ri_bits;i++) {
+    for (uint32_t i = 0; i < nof_ri_bits; i++) {
       uint32_t ri_row = (ri_bits[i].position / Qm) % rows;
 
       if (ri_row < ri_min_row) {
@@ -881,8 +973,8 @@ static void ulsch_interleave(uint8_t*          g_bits,
 
   // Reset temp_buffer because will be reused next time
   if (nof_ri_bits > 0) {
-    for (uint32_t i=0;i<nof_ri_bits;i++) {
-      ri_present[ri_bits[i].position] = 0;       
+    for (uint32_t i = 0; i < nof_ri_bits; i++) {
+      ri_present[ri_bits[i].position] = 0;
     }
   }
 }
@@ -917,8 +1009,11 @@ void ulsch_deinterleave(int16_t*          q_bits,
   }
 }
 
-static int uci_decode_ri_ack(
-    srslte_sch_t* q, srslte_pusch_cfg_t* cfg, int16_t* q_bits, uint8_t* c_seq, srslte_uci_value_t* uci_data)
+static int uci_decode_ri_ack(srslte_sch_t*       q,
+                             srslte_pusch_cfg_t* cfg,
+                             int16_t*            q_bits,
+                             uint8_t*            c_seq,
+                             srslte_uci_value_t* uci_data)
 {
   int ret = 0;
 
@@ -930,7 +1025,7 @@ static int uci_decode_ri_ack(
 
   // If there is RI and CQI, assume RI = 1 for the purpose of RI/ACK decoding (3GPP 36.212 Clause 5.2.4.1. )
   if (cfg->uci_cfg.cqi.data_enable) {
-    if (cfg->uci_cfg.cqi.type == SRSLTE_CQI_TYPE_SUBBAND_HL && cfg->uci_cfg.cqi.ri_present) {
+    if (cfg->uci_cfg.cqi.type == SRSLTE_CQI_TYPE_SUBBAND_HL && cfg->uci_cfg.cqi.ri_len) {
       cfg->uci_cfg.cqi.rank_is_not_one = false;
     }
   }
@@ -939,9 +1034,9 @@ static int uci_decode_ri_ack(
 
   // Deinterleave and decode HARQ bits
   if (srslte_uci_cfg_total_ack(&cfg->uci_cfg) > 0) {
-    float beta = beta_harq_offset[cfg->uci_offset.I_offset_ack];
+    float beta = get_beta_harq_offset(cfg->uci_offset.I_offset_ack);
     if (cfg->grant.tb.tbs == 0) {
-      beta /= beta_cqi_offset[cfg->uci_offset.I_offset_cqi];
+      beta /= get_beta_cqi_offset(cfg->uci_offset.I_offset_cqi);
     }
     ret = srslte_uci_decode_ack_ri(cfg,
                                    q_bits,
@@ -966,9 +1061,9 @@ static int uci_decode_ri_ack(
 
   // Deinterleave and decode RI bits
   if (cfg->uci_cfg.cqi.ri_len > 0) {
-    float beta = beta_ri_offset[cfg->uci_offset.I_offset_ri];
+    float beta = get_beta_ri_offset(cfg->uci_offset.I_offset_ri);
     if (cfg->grant.tb.tbs == 0) {
-      beta /= beta_cqi_offset[cfg->uci_offset.I_offset_cqi];
+      beta /= get_beta_cqi_offset(cfg->uci_offset.I_offset_cqi);
     }
     ret = srslte_uci_decode_ack_ri(
         cfg, q_bits, c_seq, beta, nb_q / Qm, cqi_len, q->ack_ri_bits, &uci_data->ri, cfg->uci_cfg.cqi.ri_len, true);
@@ -980,7 +1075,7 @@ static int uci_decode_ri_ack(
 
   // Now set correct RI
   if (cfg->uci_cfg.cqi.data_enable) {
-    if (cfg->uci_cfg.cqi.type == SRSLTE_CQI_TYPE_SUBBAND_HL && cfg->uci_cfg.cqi.ri_present) {
+    if (cfg->uci_cfg.cqi.type == SRSLTE_CQI_TYPE_SUBBAND_HL && cfg->uci_cfg.cqi.ri_len) {
       cfg->uci_cfg.cqi.rank_is_not_one = uci_data->ri > 0;
     }
   }
@@ -1043,7 +1138,7 @@ int srslte_ulsch_decode(srslte_sch_t*       q,
     ret = srslte_uci_decode_cqi_pusch(&q->uci_cqi,
                                       cfg,
                                       g_bits,
-                                      beta_cqi_offset[cfg->uci_offset.I_offset_cqi],
+                                      get_beta_cqi_offset(cfg->uci_offset.I_offset_cqi),
                                       Q_prime_ri,
                                       cqi_len,
                                       cqi_buff,
@@ -1074,15 +1169,21 @@ int srslte_ulsch_encode(srslte_sch_t*       q,
 {
   int ret;
 
-  uint32_t e_offset = 0;
-  uint32_t Q_prime_cqi = 0; 
+  uint32_t e_offset    = 0;
+  uint32_t Q_prime_cqi = 0;
   uint32_t Q_prime_ack = 0;
-  uint32_t Q_prime_ri = 0;
+  uint32_t Q_prime_ri  = 0;
 
   uint32_t nb_q = cfg->grant.tb.nof_bits;
   uint32_t Qm   = srslte_mod_bits_x_symbol(cfg->grant.tb.mod);
 
   if (Qm == 0) {
+    ERROR("Invalid input\n");
+    return SRSLTE_ERROR_INVALID_INPUTS;
+  }
+
+  if (cfg->grant.nof_symb == 0) {
+    ERROR("Invalid input\n");
     return SRSLTE_ERROR_INVALID_INPUTS;
   }
 
@@ -1108,9 +1209,9 @@ int srslte_ulsch_encode(srslte_sch_t*       q,
   }
 
   if (cfg->uci_cfg.cqi.ri_len > 0) {
-    float beta = beta_ri_offset[cfg->uci_offset.I_offset_ri];
+    float beta = get_beta_ri_offset(cfg->uci_offset.I_offset_ri);
     if (cb_segm.tbs == 0) {
-      beta /= beta_cqi_offset[cfg->uci_offset.I_offset_cqi];
+      beta /= get_beta_cqi_offset(cfg->uci_offset.I_offset_cqi);
     }
     uint8_t ri[2] = {uci_data->ri, 0};
     ret           = srslte_uci_encode_ack_ri(cfg,
@@ -1127,18 +1228,18 @@ int srslte_ulsch_encode(srslte_sch_t*       q,
     }
     Q_prime_ri = (uint32_t)ret;
   }
-  
+
   // Encode CQI
   if (uci_cqi_len > 0) {
     ret = srslte_uci_encode_cqi_pusch(&q->uci_cqi,
                                       cfg,
                                       cqi_buff,
                                       (uint32_t)uci_cqi_len,
-                                      beta_cqi_offset[cfg->uci_offset.I_offset_cqi],
+                                      get_beta_cqi_offset(cfg->uci_offset.I_offset_cqi),
                                       Q_prime_ri,
                                       q->temp_g_bits);
     if (ret < 0) {
-      return ret; 
+      return ret;
     }
     Q_prime_cqi = (uint32_t)ret;
 
@@ -1148,12 +1249,12 @@ int srslte_ulsch_encode(srslte_sch_t*       q,
       srslte_vec_fprint_b(stdout, q->temp_g_bits, Q_prime_cqi*Qm);
     }*/
 
-    srslte_bit_pack_vector(q->temp_g_bits, g_bits, Q_prime_cqi*Qm);
+    srslte_bit_pack_vector(q->temp_g_bits, g_bits, Q_prime_cqi * Qm);
     // Reset the buffer because will be reused in ulsch_interleave
-    bzero(q->temp_g_bits, Q_prime_cqi * Qm);
+    srslte_vec_u8_zero(q->temp_g_bits, Q_prime_cqi * Qm);
   }
-  
-  e_offset += Q_prime_cqi*Qm;
+
+  e_offset += Q_prime_cqi * Qm;
 
   // Encode UL-SCH
   if (cb_segm.tbs > 0) {
@@ -1161,18 +1262,18 @@ int srslte_ulsch_encode(srslte_sch_t*       q,
     ret        = encode_tb_off(
         q, cfg->softbuffers.tx, &cb_segm, Qm, cfg->grant.tb.rv, G * Qm, data, &g_bits[e_offset / 8], e_offset % 8);
     if (ret) {
-      return ret; 
-    }    
-  } 
-  
+      return ret;
+    }
+  }
+
   // Interleave UL-SCH (and RI and CQI)
   ulsch_interleave(g_bits, Qm, nb_q / Qm, cfg->grant.nof_symb, q_bits, q->ack_ri_bits, Q_prime_ri * Qm, q->temp_g_bits);
 
   // Encode (and interleave) ACK
   if (srslte_uci_cfg_total_ack(&cfg->uci_cfg) > 0) {
-    float beta = beta_harq_offset[cfg->uci_offset.I_offset_ack];
+    float beta = get_beta_harq_offset(cfg->uci_offset.I_offset_ack);
     if (cb_segm.tbs == 0) {
-      beta /= beta_cqi_offset[cfg->uci_offset.I_offset_cqi];
+      beta /= get_beta_cqi_offset(cfg->uci_offset.I_offset_cqi);
     }
     ret = srslte_uci_encode_ack_ri(cfg,
                                    uci_data->ack.ack_value,
@@ -1184,9 +1285,9 @@ int srslte_ulsch_encode(srslte_sch_t*       q,
                                    cfg->uci_cfg.ack[0].N_bundle,
                                    &q->ack_ri_bits[Q_prime_ri * Qm]);
     if (ret < 0) {
-      return ret; 
+      return ret;
     }
-    Q_prime_ack = (uint32_t) ret;
+    Q_prime_ack = (uint32_t)ret;
   }
 
   uint32_t nof_ri_ack_bits = (Q_prime_ack + Q_prime_ri) * Qm;
@@ -1195,9 +1296,9 @@ int srslte_ulsch_encode(srslte_sch_t*       q,
     uint32_t p = q->ack_ri_bits[i].position;
     if (p < nb_q) {
       if (q->ack_ri_bits[i].type == UCI_BIT_1) {
-        q_bits[p/8] |= (1<<(7-p%8));
+        q_bits[p / 8] |= (1U << (7 - p % 8));
       } else {
-        q_bits[p/8] &= ~(1<<(7-p%8));
+        q_bits[p / 8] &= ~(1U << (7 - p % 8));
       }
     } else {
       ERROR("Invalid RI/ACK bit %d/%d, position %d. Max bits=%d, Qm=%d\n", i, nof_ri_ack_bits, p, nb_q, Qm);
@@ -1209,3 +1310,21 @@ int srslte_ulsch_encode(srslte_sch_t*       q,
   return nof_ri_ack_bits;
 }
 
+void srslte_sl_ulsch_interleave(uint8_t* g_bits,
+                                uint32_t Qm,
+                                uint32_t H_prime_total,
+                                uint32_t N_pusch_symbs,
+                                uint8_t* q_bits)
+{
+  ulsch_interleave(g_bits, Qm, H_prime_total, N_pusch_symbs, q_bits, NULL, 0, false);
+}
+
+void srslte_sl_ulsch_deinterleave(int16_t*  q_bits,
+                                  uint32_t  Qm,
+                                  uint32_t  H_prime_total,
+                                  uint32_t  N_pusch_symbs,
+                                  int16_t*  g_bits,
+                                  uint32_t* inteleaver_lut)
+{
+  ulsch_deinterleave(q_bits, Qm, H_prime_total, N_pusch_symbs, g_bits, NULL, 0, NULL, inteleaver_lut);
+}

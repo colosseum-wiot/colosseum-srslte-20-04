@@ -1,5 +1,5 @@
 /*
- * Copyright 2013-2019 Software Radio Systems Limited
+ * Copyright 2013-2020 Software Radio Systems Limited
  *
  * This file is part of srsLTE.
  *
@@ -37,20 +37,15 @@
 
 /* Generates the vector of layer-mapped symbols "x" based on the vector of data symbols "d"
  */
-SRSLTE_API int srslte_layermap_single(cf_t *d, 
-                                      cf_t *x, 
-                                      int nof_symbols);
+SRSLTE_API int srslte_layermap_single(cf_t* d, cf_t* x, int nof_symbols);
 
-SRSLTE_API int srslte_layermap_diversity(cf_t *d, 
-                                         cf_t *x[SRSLTE_MAX_LAYERS], 
-                                         int nof_layers, 
-                                         int nof_symbols);
+SRSLTE_API int srslte_layermap_diversity(cf_t* d, cf_t* x[SRSLTE_MAX_LAYERS], int nof_layers, int nof_symbols);
 
-SRSLTE_API int srslte_layermap_multiplex(cf_t *d[SRSLTE_MAX_CODEWORDS], 
-                                         cf_t *x[SRSLTE_MAX_LAYERS], 
-                                         int nof_cw, 
-                                         int nof_layers,
-                                         int nof_symbols[SRSLTE_MAX_CODEWORDS]);
+SRSLTE_API int srslte_layermap_multiplex(cf_t* d[SRSLTE_MAX_CODEWORDS],
+                                         cf_t* x[SRSLTE_MAX_LAYERS],
+                                         int   nof_cw,
+                                         int   nof_layers,
+                                         int   nof_symbols[SRSLTE_MAX_CODEWORDS]);
 
 SRSLTE_API int srslte_layermap_type(cf_t*              d[SRSLTE_MAX_CODEWORDS],
                                     cf_t*              x[SRSLTE_MAX_LAYERS],
@@ -61,21 +56,16 @@ SRSLTE_API int srslte_layermap_type(cf_t*              d[SRSLTE_MAX_CODEWORDS],
 
 /* Generates the vector of data symbols "d" based on the vector of layer-mapped symbols "x"
  */
-SRSLTE_API int srslte_layerdemap_single(cf_t *x, 
-                                        cf_t *d, 
-                                        int nof_symbols);
+SRSLTE_API int srslte_layerdemap_single(cf_t* x, cf_t* d, int nof_symbols);
 
-SRSLTE_API int srslte_layerdemap_diversity(cf_t *x[SRSLTE_MAX_LAYERS], 
-                                           cf_t *d, 
-                                           int nof_layers,
-                                           int nof_layer_symbols);
+SRSLTE_API int srslte_layerdemap_diversity(cf_t* x[SRSLTE_MAX_LAYERS], cf_t* d, int nof_layers, int nof_layer_symbols);
 
-SRSLTE_API int srslte_layerdemap_multiplex(cf_t *x[SRSLTE_MAX_LAYERS], 
-                                           cf_t *d[SRSLTE_MAX_CODEWORDS], 
-                                           int nof_layers, 
-                                           int nof_cw,
-                                           int nof_layer_symbols, 
-                                           int nof_symbols[SRSLTE_MAX_CODEWORDS]);
+SRSLTE_API int srslte_layerdemap_multiplex(cf_t* x[SRSLTE_MAX_LAYERS],
+                                           cf_t* d[SRSLTE_MAX_CODEWORDS],
+                                           int   nof_layers,
+                                           int   nof_cw,
+                                           int   nof_layer_symbols,
+                                           int   nof_symbols[SRSLTE_MAX_CODEWORDS]);
 
 SRSLTE_API int srslte_layerdemap_type(cf_t*              x[SRSLTE_MAX_LAYERS],
                                       cf_t*              d[SRSLTE_MAX_CODEWORDS],

@@ -1,5 +1,5 @@
 /*
- * Copyright 2013-2019 Software Radio Systems Limited
+ * Copyright 2013-2020 Software Radio Systems Limited
  *
  * This file is part of srsLTE.
  *
@@ -18,9 +18,9 @@
  * and at http://www.gnu.org/licenses/.
  *
  */
-#include <stdint.h>
 #include "srslte/asn1/gtpc.h"
 #include "srslte/common/common.h"
+#include <stdint.h>
 
 namespace srslte {
 

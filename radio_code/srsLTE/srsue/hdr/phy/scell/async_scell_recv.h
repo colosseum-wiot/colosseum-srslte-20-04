@@ -1,5 +1,5 @@
 /*
- * Copyright 2013-2019 Software Radio Systems Limited
+ * Copyright 2013-2020 Software Radio Systems Limited
  *
  * This file is part of srsLTE.
  *
@@ -32,7 +32,9 @@
 namespace srsue {
 namespace scell {
 
-class async_scell_recv : private thread
+#define SF_BUFFER_MAX_SAMPLES (5 * SRSLTE_SF_LEN_MAX)
+
+class async_scell_recv : private srslte::thread
 {
 public:
   async_scell_recv();
@@ -54,31 +56,22 @@ public:
   const srslte_cell_t* get_cell() { return &cell; };
 
   // Other functions
-  const static int MUTEX_X_WORKER = 4;
-  double           set_rx_gain(double gain);
-  int              radio_recv_fnc(cf_t* data[SRSLTE_MAX_PORTS], uint32_t nsamples, srslte_timestamp_t* rx_time);
-  bool             tti_align(uint32_t tti);
-  void             read_sf(cf_t** dst, srslte_timestamp_t* timestamp, int* next_offset);
+  void set_rx_gain(float gain);
+  int  radio_recv_fnc(cf_t* data[SRSLTE_MAX_PORTS], uint32_t nsamples, srslte_timestamp_t* rx_time);
+  bool tti_align(uint32_t tti);
+  void read_sf(cf_t** dst, srslte_timestamp_t* timestamp, int* next_offset);
 
 private:
   class phch_scell_recv_buffer
   {
   private:
-    uint32_t           tti;
-    srslte_timestamp_t timestamp;
-    int                next_offset;
-    cf_t*              buffer[SRSLTE_MAX_PORTS];
+    uint32_t           tti                      = 0;
+    srslte_timestamp_t timestamp                = {};
+    int                next_offset              = 0;
+    cf_t*              buffer[SRSLTE_MAX_PORTS] = {};
 
   public:
-    phch_scell_recv_buffer()
-    {
-      tti = 0;
-      next_offset = 0;
-      bzero(&timestamp, sizeof(timestamp));
-      for (cf_t*& b : buffer) {
-        b = nullptr;
-      }
-    }
+    phch_scell_recv_buffer() = default;
 
     ~phch_scell_recv_buffer()
     {
@@ -93,7 +86,7 @@ private:
     {
       for (uint32_t i = 0; i < nof_ports; i++) {
         // It needs to support cell search
-        buffer[i] = (cf_t*)srslte_vec_malloc(sizeof(cf_t) * SRSLTE_SF_LEN_MAX * 5);
+        buffer[i] = srslte_vec_cf_malloc(SF_BUFFER_MAX_SAMPLES);
         if (!buffer[i]) {
           fprintf(stderr, "Error allocating buffer\n");
         }
@@ -102,7 +95,7 @@ private:
 
     void set_sf(uint32_t _tti, srslte_timestamp_t* _timestamp, const int& _next_offset)
     {
-      tti = _tti;
+      tti         = _tti;
       next_offset = _next_offset;
       srslte_timestamp_copy(&timestamp, _timestamp);
     }
@@ -140,9 +133,9 @@ private:
   uint32_t radio_idx;
 
   // Pointers to other classes
-  srslte::log*   log_h;
+  srslte::log*                 log_h;
   srslte::radio_interface_phy* radio_h;
-  phy_common*    worker_com;
+  phy_common*                  worker_com;
 
   // pthread objects
   pthread_mutex_t mutex_uesync;
@@ -162,7 +155,7 @@ private:
   uint32_t out_of_sync_cnt;
   uint32_t in_sync_cnt;
 
-  cf_t* sf_buffer[SRSLTE_MAX_PORTS];
+  cf_t*    sf_buffer[SRSLTE_MAX_PORTS];
   uint32_t current_sflen;
   int      next_radio_offset;
 

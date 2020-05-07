@@ -1,5 +1,5 @@
 /*
- * Copyright 2013-2019 Software Radio Systems Limited
+ * Copyright 2013-2020 Software Radio Systems Limited
  *
  * This file is part of srsLTE.
  *
@@ -43,7 +43,6 @@ typedef struct {
 
 typedef struct SRSLTE_API {
 
-  bool           is_from_rar;
   uint32_t       L_prb;
   uint32_t       n_prb[2];       // rb_start after frequency hopping
   uint32_t       n_prb_tilde[2]; // rb_start after frequency hopping per retx
@@ -78,6 +77,10 @@ typedef struct SRSLTE_API {
 
   bool     meas_time_en;
   uint32_t meas_time_value;
+
+  bool meas_epre_en;
+  bool meas_ta_en;
+  bool meas_evm_en;
 
 } srslte_pusch_cfg_t;
 

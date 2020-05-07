@@ -1,5 +1,5 @@
 /*
- * Copyright 2013-2019 Software Radio Systems Limited
+ * Copyright 2013-2020 Software Radio Systems Limited
  *
  * This file is part of srsLTE.
  *
@@ -66,7 +66,7 @@ void spgw::cleanup()
 }
 
 int spgw::init(spgw_args_t*                           args,
-               srslte::log_filter*                    gtpu_log,
+               srslte::log_ref                        gtpu_log,
                srslte::log_filter*                    gtpc_log,
                srslte::log_filter*                    spgw_log,
                const std::map<std::string, uint64_t>& ip_to_imsi)
@@ -117,8 +117,8 @@ void spgw::run_thread()
 
   struct sockaddr_in src_addr_in;
   struct sockaddr_un src_addr_un;
-  socklen_t       addrlen;
-  struct iphdr*   ip_pkt;
+  socklen_t          addrlen;
+  struct iphdr*      ip_pkt;
 
   int sgi = m_gtpu->get_sgi();
   int s1u = m_gtpu->get_s1u();
@@ -153,7 +153,7 @@ void spgw::run_thread()
          * handle_downlink_data_notification_failure)
          */
         m_spgw_log->debug("Message received at SPGW: SGi Message\n");
-        sgi_msg      = m_pool->allocate("spgw::run_thread::sgi_msg");
+        sgi_msg          = m_pool->allocate("spgw::run_thread::sgi_msg");
         sgi_msg->N_bytes = read(sgi, sgi_msg->msg, buf_len);
         m_gtpu->handle_sgi_pdu(sgi_msg);
       }

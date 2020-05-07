@@ -1,5 +1,5 @@
 /*
- * Copyright 2013-2019 Software Radio Systems Limited
+ * Copyright 2013-2020 Software Radio Systems Limited
  *
  * This file is part of srsLTE.
  *
@@ -27,8 +27,8 @@
 
 #include "srslte/srslte.h"
 
-char *input_file_name = NULL;
-char *matlab_file_name = NULL;
+char* input_file_name  = NULL;
+char* matlab_file_name = NULL;
 
 srslte_cell_t cell = {.nof_prb         = 6,
                       .nof_ports       = 1,
@@ -39,18 +39,19 @@ srslte_cell_t cell = {.nof_prb         = 6,
 
 int flen;
 
-FILE *fmatlab = NULL;
+FILE* fmatlab = NULL;
 
-srslte_filesource_t fsrc;
+srslte_filesource_t   fsrc;
 cf_t *                input_buffer, *fft_buffer[SRSLTE_MAX_CODEWORDS];
 srslte_pcfich_t       pcfich;
-srslte_regs_t regs;
-srslte_ofdm_t fft;
-srslte_chest_dl_t chest;
+srslte_regs_t         regs;
+srslte_ofdm_t         fft;
+srslte_chest_dl_t     chest;
 srslte_chest_dl_res_t chest_res;
 bool                  use_standard_lte_rates = false;
 
-void usage(char *prog) {
+void usage(char* prog)
+{
   printf("Usage: %s [vcdoe] -i input_file\n", prog);
   printf("\t-o output matlab file name [Default Disabled]\n");
   printf("\t-c cell.id [Default %d]\n", cell.id);
@@ -61,37 +62,38 @@ void usage(char *prog) {
   printf("\t-v [set srslte_verbose to debug, default none]\n");
 }
 
-void parse_args(int argc, char **argv) {
+void parse_args(int argc, char** argv)
+{
   int opt;
   while ((opt = getopt(argc, argv, "iovcdenp")) != -1) {
-    switch(opt) {
-    case 'i':
-      input_file_name = argv[optind];
-      break;
-    case 'c':
-      cell.id = atoi(argv[optind]);
-      break;
-    case 'd':
-      use_standard_lte_rates = true;
-      break;
-    case 'n':
-      cell.nof_prb = atoi(argv[optind]);
-      break;
-    case 'p':
-      cell.nof_ports = atoi(argv[optind]);
-      break;
-    case 'o':
-      matlab_file_name = argv[optind];
-      break;
-    case 'v':
-      srslte_verbose++;
-      break;
-    case 'e':
-      cell.cp = SRSLTE_CP_EXT;
-      break;
-    default:
-      usage(argv[0]);
-      exit(-1);
+    switch (opt) {
+      case 'i':
+        input_file_name = argv[optind];
+        break;
+      case 'c':
+        cell.id = (uint32_t)strtol(argv[optind], NULL, 10);
+        break;
+      case 'd':
+        use_standard_lte_rates = true;
+        break;
+      case 'n':
+        cell.nof_prb = (uint32_t)strtol(argv[optind], NULL, 10);
+        break;
+      case 'p':
+        cell.nof_ports = (uint32_t)strtol(argv[optind], NULL, 10);
+        break;
+      case 'o':
+        matlab_file_name = argv[optind];
+        break;
+      case 'v':
+        srslte_verbose++;
+        break;
+      case 'e':
+        cell.cp = SRSLTE_CP_EXT;
+        break;
+      default:
+        usage(argv[0]);
+        exit(-1);
     }
   }
   if (!input_file_name) {
@@ -121,13 +123,13 @@ int base_init()
 
   flen = SRSLTE_SF_LEN(srslte_symbol_sz(cell.nof_prb));
 
-  input_buffer = srslte_vec_malloc(flen * sizeof(cf_t));
+  input_buffer = srslte_vec_cf_malloc(flen);
   if (!input_buffer) {
     perror("malloc");
     exit(-1);
   }
 
-  fft_buffer[0] = srslte_vec_malloc(SRSLTE_NOF_RE(cell) * sizeof(cf_t));
+  fft_buffer[0] = srslte_vec_cf_malloc(SRSLTE_NOF_RE(cell));
   if (!fft_buffer[0]) {
     perror("malloc");
     return -1;
@@ -146,13 +148,7 @@ int base_init()
     return -1;
   }
 
-  if (srslte_ofdm_init_(&fft,
-                        cell.cp,
-                        input_buffer,
-                        fft_buffer[0],
-                        srslte_symbol_sz(cell.nof_prb),
-                        cell.nof_prb,
-                        SRSLTE_DFT_FORWARD)) {
+  if (srslte_ofdm_rx_init(&fft, cell.cp, input_buffer, fft_buffer[0], cell.nof_prb)) {
     ERROR("Error initializing FFT\n");
     return -1;
   }
@@ -175,7 +171,8 @@ int base_init()
   return 0;
 }
 
-void base_free() {
+void base_free()
+{
 
   srslte_filesource_free(&fsrc);
   if (fmatlab) {
@@ -195,16 +192,17 @@ void base_free() {
   srslte_regs_free(&regs);
 }
 
-int main(int argc, char **argv) {
+int main(int argc, char** argv)
+{
   float cfi_corr;
-  int n;
+  int   n;
 
   if (argc < 3) {
     usage(argv[0]);
     exit(-1);
   }
 
-  parse_args(argc,argv);
+  parse_args(argc, argv);
 
   if (base_init()) {
     ERROR("Error initializing receiver\n");
@@ -244,7 +242,6 @@ int main(int argc, char **argv) {
   srslte_vec_save_file("d", pcfich.d, pcfich.nof_symbols * sizeof(cf_t));
 
   base_free();
-  srslte_dft_exit();
 
   if (n < 0) {
     ERROR("Error decoding PCFICH\n");

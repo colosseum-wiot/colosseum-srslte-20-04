@@ -1,5 +1,5 @@
 /*
- * Copyright 2013-2019 Software Radio Systems Limited
+ * Copyright 2013-2020 Software Radio Systems Limited
  *
  * This file is part of srsLTE.
  *
@@ -19,25 +19,26 @@
  *
  */
 
+#include <complex.h>
+#include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <unistd.h>
-#include <math.h>
-#include <time.h>
 #include <sys/time.h>
-#include <complex.h>
+#include <time.h>
+#include <unistd.h>
 
 #include "srslte/srslte.h"
 
-#define MAX_LEN  70176
+#define MAX_LEN 70176
 
 uint32_t nof_prb          = 50;
 uint32_t config_idx       = 3;
 uint32_t root_seq_idx     = 0;
 uint32_t zero_corr_zone   = 15;
-
-void usage(char *prog) {
+uint32_t num_ra_preambles = 0; // use default
+void usage(char* prog)
+{
   printf("Usage: %s\n", prog);
   printf("\t-n Uplink number of PRB [Default %d]\n", nof_prb);
   printf("\t-f Preamble format [Default 0]\n");
@@ -45,21 +46,22 @@ void usage(char *prog) {
   printf("\t-z Zero correlation zone config [Default 1]\n");
 }
 
-void parse_args(int argc, char **argv) {
+void parse_args(int argc, char** argv)
+{
   int opt;
   while ((opt = getopt(argc, argv, "nfrz")) != -1) {
     switch (opt) {
       case 'n':
-        nof_prb = atoi(argv[optind]);
+        nof_prb = (uint32_t)strtol(argv[optind], NULL, 10);
         break;
       case 'f':
-        config_idx = atoi(argv[optind]);
+        config_idx = (uint32_t)strtol(argv[optind], NULL, 10);
         break;
       case 'r':
-        root_seq_idx = atoi(argv[optind]);
+        root_seq_idx = (uint32_t)strtol(argv[optind], NULL, 10);
         break;
       case 'z':
-        zero_corr_zone = atoi(argv[optind]);
+        zero_corr_zone = (uint32_t)strtol(argv[optind], NULL, 10);
         break;
       default:
         usage(argv[0]);
@@ -73,18 +75,19 @@ int main(int argc, char** argv)
   parse_args(argc, argv);
   srslte_prach_t prach;
 
-  bool high_speed_flag      = false;
+  bool high_speed_flag = false;
 
   cf_t preamble[MAX_LEN];
-  memset(preamble, 0, sizeof(cf_t)*MAX_LEN);
+  memset(preamble, 0, sizeof(cf_t) * MAX_LEN);
 
   srslte_prach_cfg_t prach_cfg;
   ZERO_OBJECT(prach_cfg);
-  prach_cfg.config_idx     = config_idx;
-  prach_cfg.hs_flag        = high_speed_flag;
-  prach_cfg.freq_offset    = 0;
-  prach_cfg.root_seq_idx   = root_seq_idx;
-  prach_cfg.zero_corr_zone = zero_corr_zone;
+  prach_cfg.config_idx       = config_idx;
+  prach_cfg.hs_flag          = high_speed_flag;
+  prach_cfg.freq_offset      = 0;
+  prach_cfg.root_seq_idx     = root_seq_idx;
+  prach_cfg.zero_corr_zone   = zero_corr_zone;
+  prach_cfg.num_ra_preambles = num_ra_preambles;
 
   if (srslte_prach_init(&prach, srslte_symbol_sz(nof_prb))) {
     return -1;
@@ -97,11 +100,10 @@ int main(int argc, char** argv)
   uint32_t seq_index = 0;
   uint32_t indices[64];
   uint32_t n_indices = 0;
-  for(int i=0;i<64;i++)
+  for (int i = 0; i < 64; i++)
     indices[i] = 0;
 
-  for(seq_index=0;seq_index<64;seq_index++)
-  {
+  for (seq_index = 0; seq_index < 64; seq_index++) {
     srslte_prach_gen(&prach, seq_index, 0, preamble);
 
     uint32_t prach_len = prach.N_seq;
@@ -112,12 +114,11 @@ int main(int argc, char** argv)
     gettimeofday(&t[2], NULL);
     get_time_interval(t);
     printf("texec=%ld us\n", t[0].tv_usec);
-    if(n_indices != 1 || indices[0] != seq_index)
+    if (n_indices != 1 || indices[0] != seq_index)
       return -1;
   }
 
   srslte_prach_free(&prach);
-  srslte_dft_exit();
 
   printf("Done\n");
   exit(0);

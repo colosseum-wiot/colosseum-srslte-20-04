@@ -1,5 +1,5 @@
 /*
- * Copyright 2013-2019 Software Radio Systems Limited
+ * Copyright 2013-2020 Software Radio Systems Limited
  *
  * This file is part of srsLTE.
  *
@@ -22,12 +22,11 @@
 #ifndef SRSUE_PROC_SR_H
 #define SRSUE_PROC_SR_H
 
-#include <stdint.h>
+#include "srslte/common/logmap.h"
 #include "srslte/interfaces/ue_interfaces.h"
-#include "srslte/common/log.h"
+#include <stdint.h>
 
 /* Scheduling Request procedure as defined in 5.4.4 of 36.321 */
-
 
 namespace srsue {
 
@@ -35,27 +34,27 @@ class sr_proc
 {
 public:
   sr_proc();
-  void init(phy_interface_mac_lte* phy_h, rrc_interface_mac* rrc, srslte::log* log_h);
+  void init(phy_interface_mac_lte* phy_h, rrc_interface_mac* rrc, srslte::log_ref log_h);
   void step(uint32_t tti);
   void set_config(srslte::sr_cfg_t& cfg);
   void reset();
   void start();
-  bool need_random_access(); 
-  
+  bool need_random_access();
+
 private:
   bool need_tx(uint32_t tti);
 
-  int           sr_counter;
-  bool          is_pending_sr;
+  int  sr_counter;
+  bool is_pending_sr;
 
   srslte::sr_cfg_t sr_cfg;
 
-  rrc_interface_mac *rrc;
+  rrc_interface_mac*     rrc;
   phy_interface_mac_lte* phy_h;
-  srslte::log       *log_h;
-  
-  bool          initiated;
-  bool          do_ra;
+  srslte::log_ref        log_h;
+
+  bool initiated;
+  bool do_ra;
 };
 
 } // namespace srsue

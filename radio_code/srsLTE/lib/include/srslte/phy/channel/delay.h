@@ -1,5 +1,5 @@
 /*
- * Copyright 2013-2019 Software Radio Systems Limited
+ * Copyright 2013-2020 Software Radio Systems Limited
  *
  * This file is part of srsLTE.
  *
@@ -32,7 +32,7 @@ typedef struct {
   uint32_t srate_max_hz;
   uint32_t srate_hz;
   float    delay_us;
-  float    delay_nsamples;
+  uint32_t delay_nsamples;
 
   srslte_ringbuffer_t rb;
   cf_t*               zero_buffer;
@@ -53,8 +53,11 @@ SRSLTE_API void srslte_channel_delay_update_srate(srslte_channel_delay_t* q, uin
 
 SRSLTE_API void srslte_channel_delay_free(srslte_channel_delay_t* q);
 
-SRSLTE_API void srslte_channel_delay_execute(
-    srslte_channel_delay_t* q, const cf_t* in, cf_t* out, uint32_t len, const srslte_timestamp_t* ts);
+SRSLTE_API void srslte_channel_delay_execute(srslte_channel_delay_t*   q,
+                                             const cf_t*               in,
+                                             cf_t*                     out,
+                                             uint32_t                  len,
+                                             const srslte_timestamp_t* ts);
 
 #ifdef __cplusplus
 }

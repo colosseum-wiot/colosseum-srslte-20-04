@@ -1,5 +1,5 @@
 /*
- * Copyright 2013-2019 Software Radio Systems Limited
+ * Copyright 2013-2020 Software Radio Systems Limited
  *
  * This file is part of srsLTE.
  *
@@ -19,29 +19,32 @@
  *
  */
 
-#define Error(fmt, ...)   log_h->error(fmt, ##__VA_ARGS__)
+#define Error(fmt, ...) log_h->error(fmt, ##__VA_ARGS__)
 #define Warning(fmt, ...) log_h->warning(fmt, ##__VA_ARGS__)
-#define Info(fmt, ...)    log_h->info(fmt, ##__VA_ARGS__)
-#define Debug(fmt, ...)   log_h->debug(fmt, ##__VA_ARGS__)
+#define Info(fmt, ...) log_h->info(fmt, ##__VA_ARGS__)
+#define Debug(fmt, ...) log_h->debug(fmt, ##__VA_ARGS__)
 
+#include <pthread.h>
 #include <string.h>
 #include <strings.h>
-#include <pthread.h>
 #include <unistd.h>
 
 #include "srslte/common/log.h"
 #include "srslte/common/pcap.h"
 #include "srsue/hdr/stack/mac/mac.h"
 
-using namespace asn1::rrc;
-
 namespace srsue {
 
-mac::mac(srslte::log* log_) : mch_msg(10, log_), mux_unit(log_), demux_unit(log_), pcap(nullptr), log_h(log_)
+mac::mac(const char* logname) :
+  log_h(srslte::logmap::get(logname)),
+  mch_msg(10, log_h),
+  mux_unit(log_h),
+  demux_unit(log_h),
+  pcap(nullptr)
 {
   // Create PCell HARQ entities
-  auto ul = ul_harq_entity_ptr(new ul_harq_entity());
-  auto dl = dl_harq_entity_ptr(new dl_harq_entity());
+  auto ul = ul_harq_entity_ptr(new ul_harq_entity(PCELL_CC_IDX));
+  auto dl = dl_harq_entity_ptr(new dl_harq_entity(PCELL_CC_IDX));
 
   ul_harq.clear();
   dl_harq.clear();
@@ -51,6 +54,8 @@ mac::mac(srslte::log* log_) : mch_msg(10, log_), mux_unit(log_), demux_unit(log_
 
   srslte_softbuffer_rx_init(&pch_softbuffer, 100);
   srslte_softbuffer_rx_init(&mch_softbuffer, 100);
+
+  pool = srslte::byte_buffer_pool::get_instance();
 
   // Keep initialising members
   bzero(&metrics, sizeof(mac_metrics_t));
@@ -65,38 +70,31 @@ mac::~mac()
   srslte_softbuffer_rx_free(&mch_softbuffer);
 }
 
-bool mac::init(phy_interface_mac_lte* phy,
-               rlc_interface_mac*     rlc,
-               rrc_interface_mac*     rrc,
-               srslte::timers*        timers_,
-               stack_interface_mac*   stack_)
+bool mac::init(phy_interface_mac_lte*  phy,
+               rlc_interface_mac*      rlc,
+               rrc_interface_mac*      rrc,
+               task_handler_interface* stack_)
 {
   phy_h   = phy;
   rlc_h   = rlc;
   rrc_h   = rrc;
-  timers  = timers_;
   stack_h = stack_;
 
-  timer_alignment                      = timers->get_unique_id();
-  uint32_t contention_resolution_timer = timers->get_unique_id();
+  timer_alignment = stack_h->get_unique_timer();
 
-  bsr_procedure.init(rlc_h, log_h, timers);
-  phr_procedure.init(phy_h, log_h, timers);
+  // Create Stack task dispatch queue
+  stack_task_dispatch_queue = stack_h->make_task_queue();
+
+  bsr_procedure.init(rlc_h, log_h, stack_h);
+  phr_procedure.init(phy_h, log_h, stack_h);
   mux_unit.init(rlc_h, &bsr_procedure, &phr_procedure);
-  demux_unit.init(phy_h, rlc_h, this, timers->get(timer_alignment));
-  ra_procedure.init(phy_h,
-                    rrc,
-                    log_h,
-                    &uernti,
-                    timers->get(timer_alignment),
-                    timers->get(contention_resolution_timer),
-                    &mux_unit,
-                    stack_h);
+  demux_unit.init(phy_h, rlc_h, this, &timer_alignment);
+  ra_procedure.init(phy_h, rrc, log_h, &uernti, &timer_alignment, &mux_unit, stack_h);
   sr_procedure.init(phy_h, rrc, log_h);
 
   // Create UL/DL unique HARQ pointers
   ul_harq.at(0)->init(log_h, &uernti, &ra_procedure, &mux_unit);
-  dl_harq.at(0)->init(log_h, &uernti, timers->get(timer_alignment), &demux_unit);
+  dl_harq.at(0)->init(log_h, &uernti, &demux_unit);
 
   reset();
 
@@ -129,21 +127,21 @@ void mac::start_pcap(srslte::mac_pcap* pcap_)
   ra_procedure.start_pcap(pcap);
 }
 
-// FIXME: Change the function name and implement reconfiguration as in specs
+// TODO: Change the function name and implement reconfiguration as in specs
 // Implement Section 5.8
 void mac::reconfiguration(const uint32_t& cc_idx, const bool& enable)
 {
   if (cc_idx < SRSLTE_MAX_CARRIERS) {
     // Create as many HARQ entities as carriers required
     while (ul_harq.size() < cc_idx + 1) {
-      auto ul = ul_harq_entity_ptr(new ul_harq_entity());
+      auto ul = ul_harq_entity_ptr(new ul_harq_entity(cc_idx));
       ul->init(log_h, &uernti, &ra_procedure, &mux_unit);
       ul->set_config(ul_harq_cfg);
       ul_harq.push_back(std::move(ul));
     }
     while (dl_harq.size() < cc_idx + 1) {
-      auto dl = dl_harq_entity_ptr(new dl_harq_entity());
-      dl->init(log_h, &uernti, timers->get(timer_alignment), &demux_unit);
+      auto dl = dl_harq_entity_ptr(new dl_harq_entity(cc_idx));
+      dl->init(log_h, &uernti, &demux_unit);
 
       if (pcap) {
         dl->start_pcap(pcap);
@@ -154,10 +152,11 @@ void mac::reconfiguration(const uint32_t& cc_idx, const bool& enable)
   }
 }
 
-void mac::wait_uplink() {
-  int cnt=0;
+void mac::wait_uplink()
+{
+  int cnt = 0;
   Info("Waiting to uplink...\n");
-  while(mux_unit.is_pending_any_sdu() && cnt<20) {
+  while (mux_unit.is_pending_any_sdu() && cnt < 20) {
     usleep(1000);
     cnt++;
   }
@@ -170,7 +169,7 @@ void mac::reset()
 
   Info("Resetting MAC\n");
 
-  timers->get(timer_alignment)->stop();
+  timer_alignment.stop();
 
   timer_alignment_expire();
 
@@ -217,9 +216,9 @@ void mac::run_tti(const uint32_t tti)
 
   // Step all procedures
   Debug("Running MAC tti=%d\n", tti);
-  mux_unit.step(tti);
+  mux_unit.step();
   bsr_procedure.step(tti);
-  phr_procedure.step(tti);
+  phr_procedure.step();
 
   // Check if BSR procedure need to start SR
   if (bsr_procedure.need_to_send_sr(tti)) {
@@ -238,20 +237,23 @@ void mac::run_tti(const uint32_t tti)
   }
 
   ra_procedure.step(tti);
-  ra_window_start  = -1;
-  ra_window_length = -1;
-  ra_procedure.update_rar_window(&ra_window_start, &ra_window_length);
+  ra_procedure.update_rar_window(ra_window_start, ra_window_length);
+
+  // Count TTI for metrics
+  for (uint32_t i = 0; i < SRSLTE_MAX_CARRIERS; i++) {
+    metrics[i].nof_tti++;
+  }
 }
 
-void mac::bcch_start_rx(int si_window_start, int si_window_length)
+void mac::bcch_start_rx(int si_window_start_, int si_window_length_)
 {
-  if (si_window_length >= 0 && si_window_start >= 0) {
-    dl_harq.at(0)->set_si_window_start(si_window_start);
-    this->si_window_length = si_window_length;
-    this->si_window_start  = si_window_start;
+  if (si_window_length_ >= 0 && si_window_start_ >= 0) {
+    dl_harq.at(0)->set_si_window_start(si_window_start_);
+    si_window_length = si_window_length_;
+    si_window_start  = si_window_start_;
   } else {
-    this->si_window_length = 0;
-    this->si_window_start  = 0;
+    si_window_length = 0;
+    si_window_start  = 0;
   }
   Info("SCHED: Searching for DL dci for SI-RNTI window_st=%d, window_len=%d\n", si_window_start, si_window_length);
 }
@@ -268,8 +270,8 @@ void mac::pcch_start_rx()
 
 void mac::clear_rntis()
 {
-  p_window_start  = 0;
-  si_window_start = 0;
+  p_window_start   = 0;
+  si_window_start  = 0;
   ra_window_start  = -1;
   ra_window_length = -1;
   bzero(&uernti, sizeof(ue_rnti_t));
@@ -298,7 +300,7 @@ uint16_t mac::get_ul_sched_rnti(uint32_t tti)
   if (uernti.crnti) {
     return uernti.crnti;
   }
-  return 0;
+  return SRSLTE_INVALID_RNTI;
 }
 
 bool mac::is_in_window(uint32_t tti, int* start, int* len)
@@ -333,10 +335,10 @@ uint16_t mac::get_dl_sched_rnti(uint32_t tti)
   // Priority: SI-RNTI, P-RNTI, RA-RNTI, Temp-RNTI, CRNTI
   if (si_window_start > 0) {
     if (is_in_window(tti, &si_window_start, &si_window_length)) {
-      // FIXME: This scheduling decision belongs to RRC
+      // TODO: This scheduling decision belongs to RRC
       if (si_window_length > 1) {                     // This is not a SIB1
         if ((tti / 10) % 2 == 0 && (tti % 10) == 5) { // Skip subframe #5 for which SFN mod 2 = 0
-          return 0;
+          return SRSLTE_INVALID_RNTI;
         }
       }
       Debug("SCHED: Searching SI-RNTI, tti=%d, window start=%d, length=%d\n", tti, si_window_start, si_window_length);
@@ -359,16 +361,30 @@ uint16_t mac::get_dl_sched_rnti(uint32_t tti)
     Debug("SCHED: Searching P-RNTI\n");
     return SRSLTE_PRNTI;
   }
-  return 0;
+
+  // turn off DCI search for this TTI
+  return SRSLTE_INVALID_RNTI;
 }
 
-void mac::bch_decoded_ok(uint8_t* payload, uint32_t len)
+void mac::bch_decoded_ok(uint32_t cc_idx, uint8_t* payload, uint32_t len)
 {
   // Send MIB to RLC
-  rlc_h->write_pdu_bcch_bch(payload, len);
+  unique_byte_buffer_t buf = allocate_unique_buffer(*pool);
+  if (buf != nullptr) {
+    memcpy(buf->msg, payload, len);
+    buf->N_bytes = len;
+    buf->set_timestamp();
+    auto p = stack_task_dispatch_queue.try_push(std::bind(
+        [this](srslte::unique_byte_buffer_t& buf) { rlc_h->write_pdu_bcch_bch(std::move(buf)); }, std::move(buf)));
+    if (not p.first) {
+      Warning("Failed to dispatch rlc::write_pdu_bcch_bch task to stack\n");
+    }
+  } else {
+    log_h->error("Fatal error: Out of buffers from the pool in write_pdu_bcch_bch()\n");
+  }
 
   if (pcap) {
-    pcap->write_dl_bch(payload, len, true, phy_h->get_current_tti());
+    pcap->write_dl_bch(payload, len, true, phy_h->get_current_tti(), cc_idx);
   }
 }
 
@@ -380,7 +396,7 @@ void mac::mch_decoded(uint32_t len, bool crc)
     mch_msg.parse_packet(mch_payload_buffer);
     while (mch_msg.next()) {
       for (uint32_t i = 0; i < phy_mbsfn_cfg.nof_mbsfn_services; i++) {
-        if (srslte::sch_subh::MCH_SCHED_INFO == mch_msg.get()->ce_type()) {
+        if (srslte::mch_lcid::MCH_SCHED_INFO == mch_msg.get()->mch_ce_type()) {
           uint16_t stop;
           uint8_t  lcid;
           if (mch_msg.get()->get_next_mch_sched_info(&lcid, &stop)) {
@@ -392,10 +408,12 @@ void mac::mch_decoded(uint32_t len, bool crc)
     }
 
     demux_unit.push_pdu_mch(mch_payload_buffer, len);
-    stack_h->process_pdus();
+    process_pdus();
+
     if (pcap) {
-      pcap->write_dl_mch(mch_payload_buffer, len, true, phy_h->get_current_tti());
+      pcap->write_dl_mch(mch_payload_buffer, len, true, phy_h->get_current_tti(), 0);
     }
+
     metrics[0].rx_brate += len * 8;
   } else {
     metrics[0].rx_errors++;
@@ -407,19 +425,32 @@ void mac::tb_decoded(uint32_t cc_idx, mac_grant_dl_t grant, bool ack[SRSLTE_MAX_
 {
   if (SRSLTE_RNTI_ISRAR(grant.rnti)) {
     if (ack[0]) {
-      ra_procedure.tb_decoded_ok(grant.tti);
+      ra_procedure.tb_decoded_ok(cc_idx, grant.tti);
     }
   } else if (grant.rnti == SRSLTE_PRNTI) {
     // Send PCH payload to RLC
-    rlc_h->write_pdu_pcch(pch_payload_buffer, grant.tb[0].tbs);
+    unique_byte_buffer_t pdu = srslte::allocate_unique_buffer(*pool);
+    if (pdu != nullptr) {
+      memcpy(pdu->msg, pch_payload_buffer, grant.tb[0].tbs);
+      pdu->N_bytes = grant.tb[0].tbs;
+      pdu->set_timestamp();
+
+      auto ret = stack_task_dispatch_queue.try_push(std::bind(
+          [this](srslte::unique_byte_buffer_t& pdu) { rlc_h->write_pdu_pcch(std::move(pdu)); }, std::move(pdu)));
+      if (not ret.first) {
+        Warning("Failed to dispatch rlc::write_pdu_pcch task to stack\n");
+      }
+    } else {
+      log_h->error("Fatal error: Out of buffers from the pool in write_pdu_pcch()\n");
+    }
 
     if (pcap) {
-      pcap->write_dl_pch(pch_payload_buffer, grant.tb[0].tbs, true, grant.tti);
+      pcap->write_dl_pch(pch_payload_buffer, grant.tb[0].tbs, true, grant.tti, cc_idx);
     }
   } else {
 
     dl_harq.at(cc_idx)->tb_decoded(grant, ack);
-    stack_h->process_pdus();
+    process_pdus();
 
     for (uint32_t tb = 0; tb < SRSLTE_MAX_CODEWORDS; tb++) {
       if (grant.tb[tb].tbs) {
@@ -467,15 +498,16 @@ void mac::new_grant_dl(uint32_t                               cc_idx,
 
 void mac::process_pdus()
 {
-  bool have_data = true;
-  while (initialized and have_data) {
-    have_data = demux_unit.process_pdus();
+  // dispatch work to stack thread
+  auto ret = stack_task_dispatch_queue.try_push([this]() {
+    bool have_data = true;
+    while (initialized and have_data) {
+      have_data = demux_unit.process_pdus();
+    }
+  });
+  if (not ret.first) {
+    Warning("Failed to dispatch mac::%s task to stack thread\n", __func__);
   }
-}
-
-void mac::notify_ra_completed()
-{
-  ra_procedure.notify_ra_completed();
 }
 
 uint32_t mac::get_current_tti()
@@ -517,7 +549,7 @@ void mac::new_grant_ul(uint32_t                               cc_idx,
   }
 }
 
-void mac::new_mch_dl(srslte_pdsch_grant_t phy_grant, tb_action_dl_t* action)
+void mac::new_mch_dl(const srslte_pdsch_grant_t& phy_grant, tb_action_dl_t* action)
 {
   action->generate_ack        = false;
   action->tb[0].enabled       = true;
@@ -529,18 +561,19 @@ void mac::new_mch_dl(srslte_pdsch_grant_t phy_grant, tb_action_dl_t* action)
 void mac::setup_timers(int time_alignment_timer)
 {
   // stop currently running time alignment timer
-  if (timers->get(timer_alignment)->is_running()) {
-    timers->get(timer_alignment)->stop();
+  if (timer_alignment.is_running()) {
+    timer_alignment.stop();
   }
 
   if (time_alignment_timer > 0) {
-    timers->get(timer_alignment)->set(this, time_alignment_timer);
+    timer_alignment.set(time_alignment_timer, [this](uint32_t tid) { timer_expired(tid); });
   }
 }
 
 void mac::timer_expired(uint32_t timer_id)
 {
-  if(timer_id == timer_alignment) {
+  if (timer_id == timer_alignment.id()) {
+    Info("Time Alignment Timer expired\n");
     timer_alignment_expire();
   } else {
     Warning("Received callback from unknown timer_id=%d\n", timer_id);
@@ -667,26 +700,6 @@ void mac::get_metrics(mac_metrics_t m[SRSLTE_MAX_CARRIERS])
   memcpy(m, metrics, sizeof(mac_metrics_t) * SRSLTE_MAX_CARRIERS);
   m = metrics;
   bzero(&metrics, sizeof(mac_metrics_t) * SRSLTE_MAX_CARRIERS);
-}
-
-/********************************************************
- *
- * Interface for timers used by upper layers
- *
- *******************************************************/
-srslte::timers::timer* mac::timer_get(uint32_t timer_id)
-{
-  return timers->get(timer_id);
-}
-
-void mac::timer_release_id(uint32_t timer_id)
-{
-  timers->release_id(timer_id);
-}
-
-uint32_t mac::timer_get_unique_id()
-{
-  return timers->get_unique_id();
 }
 
 } // namespace srsue

@@ -1,5 +1,5 @@
 /*
- * Copyright 2013-2019 Software Radio Systems Limited
+ * Copyright 2013-2020 Software Radio Systems Limited
  *
  * This file is part of srsLTE.
  *
@@ -24,17 +24,14 @@
 
 namespace srsue {
 
-
 // RRC states (3GPP 36.331 v10.0.0)
 typedef enum {
   RRC_STATE_IDLE = 0,
   RRC_STATE_CONNECTED,
   RRC_STATE_N_ITEMS,
 } rrc_state_t;
-static const char rrc_state_text[RRC_STATE_N_ITEMS][100] = {"IDLE",
-                                                            "CONNECTED"};
+static const char rrc_state_text[RRC_STATE_N_ITEMS][100] = {"IDLE", "CONNECTED"};
 
 } // namespace srsue
-
 
 #endif // SRSUE_RRC_COMMON_H

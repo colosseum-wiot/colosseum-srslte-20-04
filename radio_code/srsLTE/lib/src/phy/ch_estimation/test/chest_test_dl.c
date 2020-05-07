@@ -1,5 +1,5 @@
 /*
- * Copyright 2013-2019 Software Radio Systems Limited
+ * Copyright 2013-2020 Software Radio Systems Limited
  *
  * This file is part of srsLTE.
  *
@@ -19,11 +19,11 @@
  *
  */
 
+#include <complex.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <strings.h>
 #include <unistd.h>
-#include <complex.h>
 
 #include "srslte/srslte.h"
 
@@ -35,9 +35,10 @@ srslte_cell_t cell = {6,              // nof_prb
                       SRSLTE_PHICH_R_1_6,
                       SRSLTE_FDD};
 
-char *output_matlab = NULL;
+char* output_matlab = NULL;
 
-void usage(char *prog) {
+void usage(char* prog)
+{
   printf("Usage: %s [recov]\n", prog);
 
   printf("\t-r nof_prb [Default %d]\n", cell.nof_prb);
@@ -45,74 +46,75 @@ void usage(char *prog) {
 
   printf("\t-c cell_id (1000 tests all). [Default %d]\n", cell.id);
 
-  printf("\t-o output matlab file [Default %s]\n",output_matlab?output_matlab:"None");
+  printf("\t-o output matlab file [Default %s]\n", output_matlab ? output_matlab : "None");
   printf("\t-v increase verbosity\n");
 }
 
-void parse_args(int argc, char **argv) {
+void parse_args(int argc, char** argv)
+{
   int opt;
   while ((opt = getopt(argc, argv, "recov")) != -1) {
-    switch(opt) {
-    case 'r':
-      cell.nof_prb = atoi(argv[optind]);
-      break;
-    case 'e':
-      cell.cp = SRSLTE_CP_EXT;
-      break;
-    case 'c':
-      cell.id = atoi(argv[optind]);
-      break;
-    case 'o':
-      output_matlab = argv[optind];
-      break;
-    case 'v':
-      srslte_verbose++;
-      break;
-    default:
-      usage(argv[0]);
-      exit(-1);
+    switch (opt) {
+      case 'r':
+        cell.nof_prb = (uint32_t)strtol(argv[optind], NULL, 10);
+        break;
+      case 'e':
+        cell.cp = SRSLTE_CP_EXT;
+        break;
+      case 'c':
+        cell.id = (uint32_t)strtol(argv[optind], NULL, 10);
+        break;
+      case 'o':
+        output_matlab = argv[optind];
+        break;
+      case 'v':
+        srslte_verbose++;
+        break;
+      default:
+        usage(argv[0]);
+        exit(-1);
     }
   }
 }
 
-
-int main(int argc, char **argv) {
+int main(int argc, char** argv)
+{
   srslte_chest_dl_t est;
   cf_t *            input = NULL, *ce = NULL, *h = NULL, *output = NULL;
-  int               i, j, num_re;
+  int               i, j;
   int               ret = -1;
   int               max_cid;
   FILE*             fmatlab = NULL;
   uint32_t          cid     = 0;
 
-  parse_args(argc,argv);
+  parse_args(argc, argv);
 
   if (output_matlab) {
-    fmatlab=fopen(output_matlab, "w");
+    fmatlab = fopen(output_matlab, "w");
     if (!fmatlab) {
       perror("fopen");
       goto do_exit;
     }
   }
 
-  num_re = 2 * cell.nof_prb * SRSLTE_NRE * SRSLTE_CP_NSYMB(cell.cp);
+  uint32_t num_re = 2 * cell.nof_prb * SRSLTE_NRE * SRSLTE_CP_NSYMB(cell.cp);
 
-  input = srslte_vec_malloc(num_re * sizeof(cf_t));
+  input = srslte_vec_cf_malloc(num_re);
   if (!input) {
     perror("srslte_vec_malloc");
     goto do_exit;
   }
-  output = srslte_vec_malloc(num_re * sizeof(cf_t));
+  output = srslte_vec_cf_malloc(num_re);
   if (!output) {
     perror("srslte_vec_malloc");
     goto do_exit;
   }
-  h = srslte_vec_malloc(num_re * sizeof(cf_t));
+  h = srslte_vec_cf_malloc(num_re);
   if (!h) {
     perror("srslte_vec_malloc");
     goto do_exit;
   }
-  ce = srslte_vec_malloc(num_re * sizeof(cf_t));
+  ce = srslte_vec_cf_malloc(num_re);
   if (!ce) {
     perror("srslte_vec_malloc");
     goto do_exit;
@@ -122,15 +124,15 @@ int main(int argc, char **argv) {
     cid     = 0;
     max_cid = 504;
   } else {
-    cid = cell.id;
+    cid     = cell.id;
     max_cid = cell.id;
   }
   if (srslte_chest_dl_init(&est, cell.nof_prb, 1)) {
     ERROR("Error initializing equalizer\n");
     goto do_exit;
   }
-  while(cid <= max_cid) {
-    cell.id = cid; 
+  while (cid <= max_cid) {
+    cell.id = cid;
     if (srslte_chest_dl_set_cell(&est, cell)) {
       ERROR("Error initializing equalizer\n");
       goto do_exit;
@@ -143,13 +145,13 @@ int main(int argc, char **argv) {
 
       for (uint32_t n_port = 0; n_port < cell.nof_ports; n_port++) {
 
-        bzero(input, sizeof(cf_t) * num_re);
+        srslte_vec_cf_zero(input, num_re);
         for (i = 0; i < num_re; i++) {
           input[i] = 0.5 - rand() / RAND_MAX + I * (0.5 - rand() / RAND_MAX);
         }
 
-        bzero(ce, sizeof(cf_t) * num_re);
-        bzero(h, sizeof(cf_t) * num_re);
+        srslte_vec_cf_zero(ce, num_re);
+        srslte_vec_cf_zero(h, num_re);
 
         srslte_refsignal_cs_put_sf(&est.csr_refs, &sf_cfg, n_port, input);
 

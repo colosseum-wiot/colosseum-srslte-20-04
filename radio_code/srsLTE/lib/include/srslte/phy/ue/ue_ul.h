@@ -1,5 +1,5 @@
 /*
- * Copyright 2013-2019 Software Radio Systems Limited
+ * Copyright 2013-2020 Software Radio Systems Limited
  *
  * This file is part of srsLTE.
  *
@@ -33,16 +33,16 @@
 #ifndef SRSLTE_UE_UL_H
 #define SRSLTE_UE_UL_H
 
-#include "srslte/phy/common/phy_common.h"
 #include "srslte/phy/ch_estimation/chest_dl.h"
-#include "srslte/phy/dft/ofdm.h"
 #include "srslte/phy/ch_estimation/refsignal_ul.h"
-#include "srslte/phy/phch/pusch.h"
+#include "srslte/phy/common/phy_common.h"
+#include "srslte/phy/dft/ofdm.h"
 #include "srslte/phy/phch/dci.h"
+#include "srslte/phy/phch/pusch.h"
 #include "srslte/phy/phch/ra.h"
 #include "srslte/phy/sync/cfo.h"
-#include "srslte/phy/utils/vector.h"
 #include "srslte/phy/utils/debug.h"
+#include "srslte/phy/utils/vector.h"
 
 #include "srslte/config.h"
 
@@ -54,13 +54,13 @@ typedef struct {
   float p0_nominal_pucch;
   float delta_f_pucch[5];
   float delta_preamble_msg3;
-  
+
   // Dedicated configuration
   float p0_ue_pusch;
   bool  delta_mcs_based;
   bool  acc_enabled;
   float p0_ue_pucch;
-  float p_srs_offset;  
+  float p_srs_offset;
 } srslte_ue_ul_powerctrl_t;
 
 typedef struct SRSLTE_API {
@@ -85,10 +85,10 @@ typedef struct SRSLTE_API {
   uint32_t        cc_idx;
 
   srslte_ue_ul_normalize_mode_t normalize_mode;
-  float force_peak_amplitude;
-  bool  cfo_en;
-  float cfo_tol;
-  float cfo_value;
+  float                         force_peak_amplitude;
+  bool                          cfo_en;
+  float                         cfo_tol;
+  float                         cfo_value;
 
 } srslte_ue_ul_cfg_t;
 
@@ -141,17 +141,31 @@ SRSLTE_API void srslte_ue_ul_pusch_hopping(srslte_ue_ul_t*       q,
 SRSLTE_API int
 srslte_ue_ul_encode(srslte_ue_ul_t* q, srslte_ul_sf_cfg_t* sf, srslte_ue_ul_cfg_t* cfg, srslte_pusch_data_t* data);
 
-SRSLTE_API int srslte_ue_ul_sr_send_tti(srslte_pucch_cfg_t* cfg, uint32_t current_tti);
+SRSLTE_API int srslte_ue_ul_sr_send_tti(const srslte_pucch_cfg_t* cfg, uint32_t current_tti);
 
 SRSLTE_API bool
 srslte_ue_ul_gen_sr(srslte_ue_ul_cfg_t* cfg, srslte_ul_sf_cfg_t* sf, srslte_uci_data_t* uci_data, bool sr_request);
 
-SRSLTE_API void srslte_ue_ul_pucch_resource_selection(srslte_cell_t*      cell,
-                                                      srslte_pucch_cfg_t* cfg,
-                                                      srslte_uci_cfg_t*   uci_cfg,
-                                                      srslte_uci_value_t* uci_data);
+/**
+ * Determines the PUCCH resource selection according to 3GPP 36.213 R10 Section 10.1. The PUCCH format and resource are
+ * saved in cfg->format and cfg->n_pucch. Also, HARQ-ACK
+ *
+ * @param cell Cell parameter, non-modifiable
+ * @param cfg PUCCH configuration and contains function results
+ * @param uci_cfg UCI configuration
+ * @param uci_data UCI data
+ * @param b Modified bits after applying HARQ-ACK feedback mode "encoding"
+ */
+SRSLTE_API void srslte_ue_ul_pucch_resource_selection(const srslte_cell_t*      cell,
+                                                      srslte_pucch_cfg_t*       cfg,
+                                                      const srslte_uci_cfg_t*   uci_cfg,
+                                                      const srslte_uci_value_t* uci_value,
+                                                      uint8_t                   b[SRSLTE_UCI_MAX_ACK_BITS]);
 
-SRSLTE_API bool srslte_ue_ul_info(
-    srslte_ue_ul_cfg_t* cfg, srslte_ul_sf_cfg_t* sf, srslte_uci_value_t* uci_data, char* str, uint32_t str_len);
+SRSLTE_API bool srslte_ue_ul_info(srslte_ue_ul_cfg_t* cfg,
+                                  srslte_ul_sf_cfg_t* sf,
+                                  srslte_uci_value_t* uci_data,
+                                  char*               str,
+                                  uint32_t            str_len);
 
 #endif // SRSLTE_UE_UL_H

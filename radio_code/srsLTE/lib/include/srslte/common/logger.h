@@ -1,5 +1,5 @@
 /*
- * Copyright 2013-2019 Software Radio Systems Limited
+ * Copyright 2013-2020 Software Radio Systems Limited
  *
  * This file is part of srsLTE.
  *
@@ -40,6 +40,7 @@ public:
   const static uint32_t preallocated_log_str_size = 1024;
 
   logger() : pool(16 * 1024) {}
+  virtual ~logger() = default;
 
   class log_str
   {
@@ -60,6 +61,9 @@ public:
     void     reset() { msg[0] = '\0'; }
     char*    str() { return msg; }
     uint32_t get_buffer_size() { return size; }
+#ifdef SRSLTE_BUFFER_POOL_LOG_ENABLED
+    char debug_name[SRSLTE_BUFFER_POOL_LOG_NAME_LEN] = {};
+#endif
 
   private:
     uint32_t size;
@@ -89,7 +93,7 @@ public:
   };
   typedef std::unique_ptr<log_str, log_str_deleter> unique_log_str_t;
 
-  void log_char(const char* msg) { log(std::move(unique_log_str_t(new log_str(msg), log_str_deleter()))); }
+  void log_char(const char* msg) { log(unique_log_str_t(new log_str(msg), log_str_deleter())); }
 
   virtual void log(unique_log_str_t msg) = 0;
 

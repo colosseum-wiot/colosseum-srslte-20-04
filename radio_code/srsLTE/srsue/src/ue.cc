@@ -1,5 +1,5 @@
 /*
- * Copyright 2013-2019 Software Radio Systems Limited
+ * Copyright 2013-2020 Software Radio Systems Limited
  *
  * This file is part of srsLTE.
  *
@@ -21,7 +21,7 @@
 
 #include "srsue/hdr/ue.h"
 #include "srslte/build_info.h"
-#include "srslte/radio/radio_multi.h"
+#include "srslte/radio/radio.h"
 #include "srslte/srslte.h"
 #include "srsue/hdr/phy/phy.h"
 #include "srsue/hdr/stack/ue_stack_lte.h"
@@ -40,13 +40,6 @@ ue::ue() : logger(nullptr)
 {
   // print build info
   std::cout << std::endl << get_build_string() << std::endl;
-
-  // load FFTW wisdom
-  srslte_dft_load();
-
-  // save FFTW wisdom when UE exits
-  atexit(srslte_dft_exit);
-
   pool = byte_buffer_pool::get_instance();
 }
 
@@ -55,11 +48,11 @@ ue::~ue()
   // destruct stack components before cleaning buffer pool
   stack.reset();
   byte_buffer_pool::cleanup();
-
 }
 
 int ue::init(const all_args_t& args_, srslte::logger* logger_)
 {
+  int ret = SRSLTE_SUCCESS;
   logger = logger_;
 
   // Init UE log
@@ -69,7 +62,7 @@ int ue::init(const all_args_t& args_, srslte::logger* logger_)
 
   // Validate arguments
   if (parse_args(args_)) {
-    log.console("Error processing arguments.\n");
+    log.console("Error processing arguments. Please check %s for more details.\n", args_.log.filename.c_str());
     return SRSLTE_ERROR;
   }
 
@@ -93,31 +86,31 @@ int ue::init(const all_args_t& args_, srslte::logger* logger_)
       return SRSLTE_ERROR;
     }
 
-    std::unique_ptr<radio_multi> lte_radio = std::unique_ptr<radio_multi>(new radio_multi(logger));
+    std::unique_ptr<srslte::radio> lte_radio = std::unique_ptr<srslte::radio>(new srslte::radio(logger));
     if (!lte_radio) {
       log.console("Error creating radio multi instance.\n");
       return SRSLTE_ERROR;
     }
 
-    // init layers
+    // init layers (do not exit immedietly if something goes wrong as sub-layers may already use interfaces)
     if (lte_radio->init(args.rf, lte_phy.get())) {
       log.console("Error initializing radio.\n");
-      return SRSLTE_ERROR;
+      ret = SRSLTE_ERROR;
     }
 
     if (lte_phy->init(args.phy, lte_stack.get(), lte_radio.get())) {
       log.console("Error initializing PHY.\n");
-      return SRSLTE_ERROR;
+      ret = SRSLTE_ERROR;
     }
 
     if (lte_stack->init(args.stack, logger, lte_phy.get(), gw_ptr.get())) {
       log.console("Error initializing stack.\n");
-      return SRSLTE_ERROR;
+      ret = SRSLTE_ERROR;
     }
 
     if (gw_ptr->init(args.gw, logger, lte_stack.get())) {
       log.console("Error initializing GW.\n");
-      return SRSLTE_ERROR;
+      ret = SRSLTE_ERROR;
     }
 
     // move ownership
@@ -127,14 +120,16 @@ int ue::init(const all_args_t& args_, srslte::logger* logger_)
     radio   = std::move(lte_radio);
   } else {
     log.console("Invalid stack type %s. Supported values are [lte].\n", args.stack.type.c_str());
-    return SRSLTE_ERROR;
+    ret = SRSLTE_ERROR;
   }
 
-  log.console("Waiting PHY to initialize ... ");
-  phy->wait_initialize();
-  log.console("done!\n");
+  if (phy) {
+    log.console("Waiting PHY to initialize ... ");
+    phy->wait_initialize();
+    log.console("done!\n");
+  }
 
-  return SRSLTE_SUCCESS;
+  return ret;
 }
 
 int ue::parse_args(const all_args_t& args_)
@@ -163,39 +158,33 @@ int ue::parse_args(const all_args_t& args_)
     }
   }
 
-  // replicate some RF parameter to make them available to PHY
-  args.phy.nof_rx_ant  = args.rf.nof_rx_ant;
-  args.phy.agc_enable  = args.rf.rx_gain < 0.0f;
-
-  // Calculate number of carriers available in all radios
-  args.phy.nof_radios      = args.rf.nof_radios;
-  args.phy.nof_rf_channels = args.rf.nof_rf_channels;
-  args.phy.nof_carriers    = args.rf.nof_radios * args.rf.nof_rf_channels;
-
-  if (args.phy.nof_carriers > SRSLTE_MAX_CARRIERS) {
-    log.error("Too many carriers (%d > %d)\n", args.phy.nof_carriers, SRSLTE_MAX_CARRIERS);
+  if (args.rf.nof_antennas > SRSLTE_MAX_PORTS) {
+    fprintf(stderr, "Maximum number of antennas exceeded (%d > %d)\n", args.rf.nof_antennas, SRSLTE_MAX_PORTS);
     return SRSLTE_ERROR;
   }
 
-  // Generate RF-Channel to Carrier map
-  for (uint32_t i = 0; i < args.phy.nof_carriers; i++) {
-    carrier_map_t* m = &args.phy.carrier_map[i];
-    m->radio_idx     = i / args.rf.nof_rf_channels;
-    m->channel_idx   = (i % args.rf.nof_rf_channels) * args.rf.nof_rx_ant;
-    log.debug("Mapping carrier %d to channel %d in radio %d\n", i, m->channel_idx, m->radio_idx);
+  if (args.rf.nof_carriers > SRSLTE_MAX_CARRIERS) {
+    fprintf(stderr, "Maximum number of carriers exceeded (%d > %d)\n", args.rf.nof_carriers, SRSLTE_MAX_CARRIERS);
+    return SRSLTE_ERROR;
   }
 
-  // populate EARFCN list
+  // replicate some RF parameter to make them available to PHY
+  args.phy.nof_carriers = args.rf.nof_carriers;
+  args.phy.nof_rx_ant   = args.rf.nof_antennas;
+  args.phy.agc_enable   = args.rf.rx_gain < 0.0f;
+
+  // populate DL EARFCN list
   if (!args.phy.dl_earfcn.empty()) {
+    args.phy.dl_earfcn_list.clear();
     std::stringstream ss(args.phy.dl_earfcn);
     uint32_t          idx = 0;
     while (ss.good()) {
       std::string substr;
       getline(ss, substr, ',');
-      auto earfcn                         = (uint32_t)strtoul(substr.c_str(), nullptr, 10);
+      uint32_t earfcn                     = (uint32_t)strtoul(substr.c_str(), nullptr, 10);
       args.stack.rrc.supported_bands[idx] = srslte_band_get_band(earfcn);
       args.stack.rrc.nof_supported_bands  = ++idx;
-      args.phy.earfcn_list.push_back(earfcn);
+      args.phy.dl_earfcn_list.push_back(earfcn);
     }
   } else {
     log.error("Error: dl_earfcn list is empty\n");
@@ -203,11 +192,30 @@ int ue::parse_args(const all_args_t& args_)
     return SRSLTE_ERROR;
   }
 
+  // populate UL EARFCN list
+  if (!args.phy.ul_earfcn.empty()) {
+    args.phy.ul_earfcn_map.clear();
+    std::stringstream ss(args.phy.ul_earfcn);
+    uint32_t          idx = 0;
+    while (ss.good()) {
+      std::string substr;
+      getline(ss, substr, ',');
+      uint32_t ul_earfcn = (uint32_t)strtoul(substr.c_str(), nullptr, 10);
+
+      if (idx < args.phy.dl_earfcn_list.size()) {
+        // If it can be matched with a DL EARFCN, otherwise ignore entry
+        uint32_t dl_earfcn                = args.phy.dl_earfcn_list[idx];
+        args.phy.ul_earfcn_map[dl_earfcn] = ul_earfcn;
+        idx++;
+      }
+    }
+  }
+
   // Set UE category
   args.stack.rrc.ue_category = (uint32_t)strtoul(args.stack.rrc.ue_category_str.c_str(), nullptr, 10);
 
   // Consider Carrier Aggregation support if more than one
-  args.stack.rrc.support_ca = (args.rf.nof_rf_channels * args.rf.nof_radios) > 1;
+  args.stack.rrc.support_ca = (args.rf.nof_carriers > 1);
 
   return SRSLTE_SUCCESS;
 }

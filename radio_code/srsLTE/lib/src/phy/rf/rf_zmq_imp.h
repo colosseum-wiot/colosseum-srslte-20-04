@@ -1,5 +1,5 @@
 /*
- * Copyright 2013-2019 Software Radio Systems Limited
+ * Copyright 2013-2020 Software Radio Systems Limited
  *
  * This file is part of srsLTE.
  *
@@ -19,21 +19,22 @@
  *
  */
 
+#ifndef SRSLTE_RF_ZMQ_IMP_H_
+#define SRSLTE_RF_ZMQ_IMP_H_
+
+#include <inttypes.h>
 #include <stdbool.h>
-#include <stdint.h>
 
 #include "srslte/config.h"
 #include "srslte/phy/rf/rf.h"
 
 #define DEVNAME_ZMQ "ZeroMQ"
-#define PARAM_LEN (128)
-#define PARAM_LEN_SHORT (PARAM_LEN / 2)
 
 SRSLTE_API int rf_zmq_open(char* args, void** handler);
 
 SRSLTE_API int rf_zmq_open_multi(char* args, void** handler, uint32_t nof_channels);
 
-SRSLTE_API char* rf_zmq_devname(void* h);
+SRSLTE_API const char* rf_zmq_devname(void* h);
 
 SRSLTE_API int rf_zmq_close(void* h);
 
@@ -61,23 +62,15 @@ SRSLTE_API srslte_rf_info_t* rf_zmq_get_info(void* h);
 
 SRSLTE_API void rf_zmq_suppress_stdout(void* h);
 
-SRSLTE_API void rf_zmq_register_error_handler(void* h, srslte_rf_error_handler_t error_handler);
+SRSLTE_API void rf_zmq_register_error_handler(void* h, srslte_rf_error_handler_t error_handler, void* arg);
 
 SRSLTE_API double rf_zmq_set_rx_freq(void* h, uint32_t ch, double freq);
 
-SRSLTE_API int rf_zmq_recv_with_time(void* h,
-                                     void* data,
-                                     uint32_t nsamples,
-                                     bool blocking,
-                                     time_t* secs,
-                                     double* frac_secs);
+SRSLTE_API int
+rf_zmq_recv_with_time(void* h, void* data, uint32_t nsamples, bool blocking, time_t* secs, double* frac_secs);
 
-SRSLTE_API int rf_zmq_recv_with_time_multi(void* h,
-                                           void** data,
-                                           uint32_t nsamples,
-                                           bool blocking,
-                                           time_t* secs,
-                                           double* frac_secs);
+SRSLTE_API int
+rf_zmq_recv_with_time_multi(void* h, void** data, uint32_t nsamples, bool blocking, time_t* secs, double* frac_secs);
 
 SRSLTE_API double rf_zmq_set_tx_srate(void* h, double freq);
 
@@ -106,3 +99,5 @@ SRSLTE_API int rf_zmq_send_timed_multi(void*  h,
                                        bool   blocking,
                                        bool   is_start_of_burst,
                                        bool   is_end_of_burst);
+
+#endif /* SRSLTE_RF_ZMQ_IMP_H_ */

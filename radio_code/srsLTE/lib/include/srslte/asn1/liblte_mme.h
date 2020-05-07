@@ -97,11 +97,12 @@ typedef enum {
   LIBLTE_MME_DEVICE_PROPERTIES_N_ITEMS,
 } LIBLTE_MME_DEVICE_PROPERTIES_ENUM;
 static const char liblte_mme_device_properties_text[LIBLTE_MME_DEVICE_PROPERTIES_N_ITEMS][50] = {
-    "Not configured for low priority", "Configured for low priority"};
+    "Not configured for low priority",
+    "Configured for low priority"};
 // Structs
 // Functions
 LIBLTE_ERROR_ENUM
-                  liblte_mme_pack_device_properties_ie(LIBLTE_MME_DEVICE_PROPERTIES_ENUM device_props, uint8 bit_offset, uint8** ie_ptr);
+liblte_mme_pack_device_properties_ie(LIBLTE_MME_DEVICE_PROPERTIES_ENUM device_props, uint8 bit_offset, uint8** ie_ptr);
 LIBLTE_ERROR_ENUM liblte_mme_unpack_device_properties_ie(uint8**                            ie_ptr,
                                                          uint8                              bit_offset,
                                                          LIBLTE_MME_DEVICE_PROPERTIES_ENUM* device_props);
@@ -194,8 +195,10 @@ typedef enum {
   LIBLTE_MME_REVISION_LEVEL_RESERVED,
   LIBLTE_MME_REVISION_LEVEL_N_ITEMS,
 } LIBLTE_MME_REVISION_LEVEL_ENUM;
-static const char liblte_mme_revision_level_text[LIBLTE_MME_REVISION_LEVEL_N_ITEMS][20] = {
-    "GSM Phase 1", "GSM Phase 2", "R99", "RESERVED"};
+static const char liblte_mme_revision_level_text[LIBLTE_MME_REVISION_LEVEL_N_ITEMS][20] = {"GSM Phase 1",
+                                                                                           "GSM Phase 2",
+                                                                                           "R99",
+                                                                                           "RESERVED"};
 typedef enum {
   LIBLTE_MME_RF_POWER_CAPABILITY_CLASS_1 = 0,
   LIBLTE_MME_RF_POWER_CAPABILITY_CLASS_2,
@@ -204,8 +207,11 @@ typedef enum {
   LIBLTE_MME_RF_POWER_CAPABILITY_CLASS_5,
   LIBLTE_MME_RF_POWER_CAPABILITY_N_ITEMS,
 } LIBLTE_MME_RF_POWER_CAPABILITY_ENUM;
-static const char liblte_mme_rf_power_capability_text[LIBLTE_MME_RF_POWER_CAPABILITY_N_ITEMS][20] = {
-    "Class 1", "Class 2", "Class 3", "Class 4", "Class 5"};
+static const char liblte_mme_rf_power_capability_text[LIBLTE_MME_RF_POWER_CAPABILITY_N_ITEMS][20] = {"Class 1",
+                                                                                                     "Class 2",
+                                                                                                     "Class 3",
+                                                                                                     "Class 4",
+                                                                                                     "Class 5"};
 typedef enum {
   LIBLTE_MME_SS_SCREEN_INDICATOR_0 = 0,
   LIBLTE_MME_SS_SCREEN_INDICATOR_1,
@@ -213,8 +219,8 @@ typedef enum {
   LIBLTE_MME_SS_SCREEN_INDICATOR_3,
   LIBLTE_MME_SS_SCREEN_INDICATOR_N_ITEMS,
 } LIBLTE_MME_SS_SCREEN_INDICATOR_ENUM;
-static const char liblte_mme_ss_screen_indicator_text[LIBLTE_MME_SS_SCREEN_INDICATOR_N_ITEMS][100] = {
-    "Default Phase 1", "Ellipsis Notation Phase 2", "RESERVED", "RESERVED"};
+static const char liblte_mme_ss_screen_indicator_text[LIBLTE_MME_SS_SCREEN_INDICATOR_N_ITEMS][100] =
+    {"Default Phase 1", "Ellipsis Notation Phase 2", "RESERVED", "RESERVED"};
 // Structs
 typedef struct {
   LIBLTE_MME_REVISION_LEVEL_ENUM      rev_lev;
@@ -254,7 +260,7 @@ LIBLTE_ERROR_ENUM liblte_mme_unpack_mobile_station_classmark_2_ie(uint8**       
 // Enums
 // Structs
 typedef struct {
-  // FIXME
+  // TODO
 } LIBLTE_MME_MOBILE_STATION_CLASSMARK_3_STRUCT;
 // Functions
 LIBLTE_ERROR_ENUM liblte_mme_pack_mobile_station_classmark_3_ie(LIBLTE_MME_MOBILE_STATION_CLASSMARK_3_STRUCT* ms_cm3,
@@ -300,8 +306,8 @@ typedef enum {
   LIBLTE_MME_TYPE_OF_INTEGRITY_ALGORITHM_EIA7,
   LIBLTE_MME_TYPE_OF_INTEGRITY_ALGORITHM_N_ITEMS,
 } LIBLTE_MME_TYPE_OF_INTEGRITY_ALGORITHM_ENUM;
-static const char liblte_mme_type_of_integrity_algorithm_text[LIBLTE_MME_TYPE_OF_INTEGRITY_ALGORITHM_N_ITEMS][20] = {
-    "EIA0", "128-EIA1", "128-EIA2", "EIA3", "EIA4", "EIA5", "EIA6", "EIA7"};
+static const char liblte_mme_type_of_integrity_algorithm_text[LIBLTE_MME_TYPE_OF_INTEGRITY_ALGORITHM_N_ITEMS][20] =
+    {"EIA0", "128-EIA1", "128-EIA2", "EIA3", "EIA4", "EIA5", "EIA6", "EIA7"};
 typedef enum {
   LIBLTE_MME_TYPE_OF_CIPHERING_ALGORITHM_EEA0 = 0,
   LIBLTE_MME_TYPE_OF_CIPHERING_ALGORITHM_128_EEA1,
@@ -313,8 +319,8 @@ typedef enum {
   LIBLTE_MME_TYPE_OF_CIPHERING_ALGORITHM_EEA7,
   LIBLTE_MME_TYPE_OF_CIPHERING_ALGORITHM_N_ITEMS,
 } LIBLTE_MME_TYPE_OF_CIPHERING_ALGORITHM_ENUM;
-static const char liblte_mme_type_of_ciphering_algorithm_text[LIBLTE_MME_TYPE_OF_CIPHERING_ALGORITHM_N_ITEMS][20] = {
-    "EEA0", "128-EEA1", "128-EEA2", "EEA3", "EEA4", "EEA5", "EEA6", "EEA7"};
+static const char liblte_mme_type_of_ciphering_algorithm_text[LIBLTE_MME_TYPE_OF_CIPHERING_ALGORITHM_N_ITEMS][20] =
+    {"EEA0", "128-EEA1", "128-EEA2", "EEA3", "EEA4", "EEA5", "EEA6", "EEA7"};
 typedef enum {
   LIBLTE_MME_TYPE_OF_SECURITY_CONTEXT_FLAG_NATIVE = 0,
   LIBLTE_MME_TYPE_OF_SECURITY_CONTEXT_FLAG_MAPPED,
@@ -418,8 +424,8 @@ typedef enum {
   LIBLTE_MME_ADDITIONAL_UPDATE_RESULT_RESERVED,
   LIBLTE_MME_ADDITIONAL_UPDATE_RESULT_N_ITEMS,
 } LIBLTE_MME_ADDITIONAL_UPDATE_RESULT_ENUM;
-static const char liblte_mme_additional_update_result_text[LIBLTE_MME_ADDITIONAL_UPDATE_RESULT_N_ITEMS][100] = {
-    "No Additional Information", "CS Fallback Not Preferred", "SMS Only", "RESERVED"};
+static const char liblte_mme_additional_update_result_text[LIBLTE_MME_ADDITIONAL_UPDATE_RESULT_N_ITEMS][100] =
+    {"No Additional Information", "CS Fallback Not Preferred", "SMS Only", "RESERVED"};
 // Structs
 // Functions
 LIBLTE_ERROR_ENUM liblte_mme_pack_additional_update_result_ie(LIBLTE_MME_ADDITIONAL_UPDATE_RESULT_ENUM result,
@@ -446,11 +452,12 @@ typedef enum {
   LIBLTE_MME_ADDITIONAL_UPDATE_TYPE_N_ITEMS,
 } LIBLTE_MME_ADDITIONAL_UPDATE_TYPE_ENUM;
 static const char liblte_mme_additional_update_type_text[LIBLTE_MME_ADDITIONAL_UPDATE_TYPE_N_ITEMS][20] = {
-    "No additional info", "SMS Only"};
+    "No additional info",
+    "SMS Only"};
 // Structs
 // Functions
 LIBLTE_ERROR_ENUM
-                  liblte_mme_pack_additional_update_type_ie(LIBLTE_MME_ADDITIONAL_UPDATE_TYPE_ENUM aut, uint8 bit_offset, uint8** ie_ptr);
+liblte_mme_pack_additional_update_type_ie(LIBLTE_MME_ADDITIONAL_UPDATE_TYPE_ENUM aut, uint8 bit_offset, uint8** ie_ptr);
 LIBLTE_ERROR_ENUM liblte_mme_unpack_additional_update_type_ie(uint8**                                 ie_ptr,
                                                               uint8                                   bit_offset,
                                                               LIBLTE_MME_ADDITIONAL_UPDATE_TYPE_ENUM* aut);
@@ -575,8 +582,10 @@ typedef enum {
   LIBLTE_MME_DAYLIGHT_SAVING_TIME_RESERVED,
   LIBLTE_MME_DAYLIGHT_SAVING_TIME_N_ITEMS,
 } LIBLTE_MME_DAYLIGHT_SAVING_TIME_ENUM;
-static const char liblte_mme_daylight_saving_time_text[LIBLTE_MME_DAYLIGHT_SAVING_TIME_N_ITEMS][20] = {
-    "No Adjustment", "+1 Hour", "+2 Hours", "RESERVED"};
+static const char liblte_mme_daylight_saving_time_text[LIBLTE_MME_DAYLIGHT_SAVING_TIME_N_ITEMS][20] = {"No Adjustment",
+                                                                                                       "+1 Hour",
+                                                                                                       "+2 Hours",
+                                                                                                       "RESERVED"};
 // Structs
 // Functions
 LIBLTE_ERROR_ENUM liblte_mme_pack_daylight_saving_time_ie(LIBLTE_MME_DAYLIGHT_SAVING_TIME_ENUM dst, uint8** ie_ptr);
@@ -683,6 +692,7 @@ LIBLTE_ERROR_ENUM liblte_mme_unpack_drx_parameter_ie(uint8** ie_ptr, LIBLTE_MME_
 #define LIBLTE_MME_EMM_CAUSE_SECURITY_MODE_REJECTED_UNSPECIFIED 0x18
 #define LIBLTE_MME_EMM_CAUSE_NOT_AUTHORIZED_FOR_THIS_CSG 0x19
 #define LIBLTE_MME_EMM_CAUSE_NON_EPS_AUTHENTICATION_UNACCEPTABLE 0x1A
+#define LIBLTE_MME_EMM_CAUSE_REQUESTED_SERVICE_OPTION_NOT_AUTHORIZED 0x23
 #define LIBLTE_MME_EMM_CAUSE_CS_SERVICE_TEMPORARILY_NOT_AVAILABLE 0x27
 #define LIBLTE_MME_EMM_CAUSE_NO_EPS_BEARER_CONTEXT_ACTIVATED 0x28
 #define LIBLTE_MME_EMM_CAUSE_SEMANTICALLY_INCORRECT_MESSAGE 0x5F
@@ -781,8 +791,10 @@ typedef enum {
   LIBLTE_MME_CS_LCS_RESERVED,
   LIBLTE_MME_CS_LCS_N_ITEMS,
 } LIBLTE_MME_CS_LCS_ENUM;
-static const char liblte_mme_cs_lcs_text[LIBLTE_MME_CS_LCS_N_ITEMS][100] = {
-    "No Information Available", "Not Supported", "Supported", "RESERVED"};
+static const char liblte_mme_cs_lcs_text[LIBLTE_MME_CS_LCS_N_ITEMS][100] = {"No Information Available",
+                                                                            "Not Supported",
+                                                                            "Supported",
+                                                                            "RESERVED"};
 // Structs
 typedef struct {
   LIBLTE_MME_CS_LCS_ENUM cs_lcs;
@@ -834,8 +846,8 @@ typedef enum {
   LIBLTE_MME_EPS_UPDATE_TYPE_PERIODIC_UPDATING,
   LIBLTE_MME_EPS_UPDATE_TYPE_N_ITEMS,
 } LIBLTE_MME_EPS_UPDATE_TYPE_ENUM;
-static const char liblte_mme_eps_update_type_text[LIBLTE_MME_EPS_UPDATE_TYPE_N_ITEMS][100] = {
-    "TA Updating", "Combined TA/LA Updating", "Combined TA/LA Updating With IMSI Attach", "Periodic Updating"};
+static const char liblte_mme_eps_update_type_text[LIBLTE_MME_EPS_UPDATE_TYPE_N_ITEMS][100] =
+    {"TA Updating", "Combined TA/LA Updating", "Combined TA/LA Updating With IMSI Attach", "Periodic Updating"};
 // Structs
 typedef struct {
   LIBLTE_MME_EPS_UPDATE_TYPE_ENUM type;
@@ -1013,8 +1025,8 @@ typedef enum {
   LIBLTE_MME_SS_SCREENING_INDICATOR_RESERVED_2,
   LIBLTE_MME_SS_SCREENING_INDICATOR_N_ITEMS,
 } LIBLTE_MME_SS_SCREENING_INDICATOR_ENUM;
-static const char liblte_mme_ss_screening_indicator_text[LIBLTE_MME_SS_SCREENING_INDICATOR_N_ITEMS][20] = {
-    "Phase 1", "Phase 2", "Reserved 1", "Reserved 2"};
+static const char liblte_mme_ss_screening_indicator_text[LIBLTE_MME_SS_SCREENING_INDICATOR_N_ITEMS][20] =
+    {"Phase 1", "Phase 2", "Reserved 1", "Reserved 2"};
 // Structs
 typedef struct {
   LIBLTE_MME_SS_SCREENING_INDICATOR_ENUM ss_screening;
@@ -1051,6 +1063,7 @@ LIBLTE_ERROR_ENUM liblte_mme_unpack_ms_network_capability_ie(uint8**            
 // Defines
 // Enums
 // Structs
+#define LIBLTE_MME_NAS_KEY_SET_IDENTIFIER_NO_KEY_AVAILABLE (7)
 typedef struct {
   LIBLTE_MME_TYPE_OF_SECURITY_CONTEXT_FLAG_ENUM tsc_flag;
   uint8                                         nas_ksi;
@@ -1306,9 +1319,10 @@ typedef enum {
   LIBLTE_MME_TRACKING_AREA_IDENTITY_LIST_TYPE_DIFFERENT_PLMNS,
   LIBLTE_MME_TRACKING_AREA_IDENTITY_LIST_TYPE_N_ITEMS,
 } LIBLTE_MME_TRACKING_AREA_IDENTITY_LIST_TYPE_ENUM;
-static const char
-    liblte_mme_tracking_area_identity_list_type_text[LIBLTE_MME_TRACKING_AREA_IDENTITY_LIST_TYPE_N_ITEMS][100] = {
-        "One PLMN, Non-Consecutive TACs", "One PLMN, Consecutive TACs", "Different PLMNs"};
+static const char liblte_mme_tracking_area_identity_list_type_text[LIBLTE_MME_TRACKING_AREA_IDENTITY_LIST_TYPE_N_ITEMS]
+                                                                  [100] = {"One PLMN, Non-Consecutive TACs",
+                                                                           "One PLMN, Consecutive TACs",
+                                                                           "Different PLMNs"};
 // Structs
 typedef struct {
   LIBLTE_MME_TRACKING_AREA_ID_STRUCT tai[LIBLTE_MME_TRACKING_AREA_IDENTITY_LIST_MAX_SIZE];
@@ -1463,7 +1477,7 @@ LIBLTE_ERROR_ENUM liblte_mme_unpack_emergency_number_list_ie(uint8**            
 // Enums
 // Structs
 // Functions
-// FIXME
+// TODO
 
 /*********************************************************************
     IE Name: SS Code
@@ -1510,7 +1524,7 @@ LIBLTE_ERROR_ENUM liblte_mme_unpack_lcs_indicator_ie(uint8** ie_ptr, uint8* lcs_
 // Enums
 // Structs
 // Functions
-// FIXME
+// TODO
 
 /*********************************************************************
     IE Name: Generic Message Container Type
@@ -1569,8 +1583,10 @@ typedef enum {
   LIBLTE_MME_VOICE_DOMAIN_PREF_PS_PREFFERED,
   LIBLTE_MME_VOICE_DOMAIN_PREF_N_ITEMS,
 } LIBLTE_MME_VOICE_DOMAIN_PREF_ENUM;
-static const char liblte_mme_voice_domain_pref_text[LIBLTE_MME_VOICE_DOMAIN_PREF_N_ITEMS][20] = {
-    "CS Only", "PS Only", "CS Preffered", "PS Preffered"};
+static const char liblte_mme_voice_domain_pref_text[LIBLTE_MME_VOICE_DOMAIN_PREF_N_ITEMS][20] = {"CS Only",
+                                                                                                 "PS Only",
+                                                                                                 "CS Preffered",
+                                                                                                 "PS Preffered"};
 // Structs
 typedef struct {
   LIBLTE_MME_UE_USAGE_SETTING_ENUM  ue_usage_setting;
@@ -1578,9 +1594,11 @@ typedef struct {
 } LIBLTE_MME_VOICE_DOMAIN_PREF_AND_UE_USAGE_SETTING_STRUCT;
 // Functions
 LIBLTE_ERROR_ENUM liblte_mme_pack_voice_domain_pref_and_ue_usage_setting_ie(
-    LIBLTE_MME_VOICE_DOMAIN_PREF_AND_UE_USAGE_SETTING_STRUCT* voice_domain_pref_and_ue_usage_setting, uint8** ie_ptr);
+    LIBLTE_MME_VOICE_DOMAIN_PREF_AND_UE_USAGE_SETTING_STRUCT* voice_domain_pref_and_ue_usage_setting,
+    uint8**                                                   ie_ptr);
 LIBLTE_ERROR_ENUM liblte_mme_unpack_voice_domain_pref_and_ue_usage_setting_ie(
-    uint8** ie_ptr, LIBLTE_MME_VOICE_DOMAIN_PREF_AND_UE_USAGE_SETTING_STRUCT* voice_domain_pref_and_ue_usage_setting);
+    uint8**                                                   ie_ptr,
+    LIBLTE_MME_VOICE_DOMAIN_PREF_AND_UE_USAGE_SETTING_STRUCT* voice_domain_pref_and_ue_usage_setting);
 
 /*********************************************************************
     IE Name: GUTI Type
@@ -1779,13 +1797,18 @@ typedef enum {
   LIBLTE_MME_ESM_INFO_TRANSFER_FLAG_N_ITEMS,
 } LIBLTE_MME_ESM_INFO_TRANSFER_FLAG_ENUM;
 static const char liblte_mme_esm_info_transfer_flag_text[LIBLTE_MME_ESM_INFO_TRANSFER_FLAG_N_ITEMS][20] = {
-    "Not Required", "Required"};
+    "Not Required",
+    "Required"};
 // Structs
 // Functions
-LIBLTE_ERROR_ENUM liblte_mme_pack_esm_info_transfer_flag_ie(
-    LIBLTE_MME_ESM_INFO_TRANSFER_FLAG_ENUM esm_info_transfer_flag, uint8 bit_offset, uint8** ie_ptr);
-LIBLTE_ERROR_ENUM liblte_mme_unpack_esm_info_transfer_flag_ie(
-    uint8** ie_ptr, uint8 bit_offset, LIBLTE_MME_ESM_INFO_TRANSFER_FLAG_ENUM* esm_info_transfer_flag);
+LIBLTE_ERROR_ENUM
+liblte_mme_pack_esm_info_transfer_flag_ie(LIBLTE_MME_ESM_INFO_TRANSFER_FLAG_ENUM esm_info_transfer_flag,
+                                          uint8                                  bit_offset,
+                                          uint8**                                ie_ptr);
+LIBLTE_ERROR_ENUM
+liblte_mme_unpack_esm_info_transfer_flag_ie(uint8**                                 ie_ptr,
+                                            uint8                                   bit_offset,
+                                            LIBLTE_MME_ESM_INFO_TRANSFER_FLAG_ENUM* esm_info_transfer_flag);
 
 /*********************************************************************
     IE Name: Linked EPS Bearer Identity
@@ -2229,8 +2252,8 @@ typedef enum {
   LIBLTE_MME_TFT_PACKET_FILTER_DIRECTION_BIDIRECTIONAL,
   LIBLTE_MME_TFT_PACKET_FILTER_DIRECTION_N_ITEMS,
 } LIBLTE_MME_TFT_PACKET_FILTER_DIRECTION_ENUM;
-static const char liblte_mme_tft_packet_filter_direction_text[LIBLTE_MME_TFT_PACKET_FILTER_DIRECTION_N_ITEMS][100] = {
-    "Pre Rel-7 TFT Filter", "Downlink Only", "Uplink Only", "Bidirectional"};
+static const char liblte_mme_tft_packet_filter_direction_text[LIBLTE_MME_TFT_PACKET_FILTER_DIRECTION_N_ITEMS][100] =
+    {"Pre Rel-7 TFT Filter", "Downlink Only", "Uplink Only", "Bidirectional"};
 // Structs
 typedef struct {
   LIBLTE_MME_TFT_PACKET_FILTER_DIRECTION_ENUM dir;
@@ -2363,9 +2386,13 @@ const char* liblte_nas_sec_hdr_type_to_string(int code);
 #define LIBLTE_MME_MSG_TYPE_CS_SERVICE_NOTIFICATION 0x64
 #define LIBLTE_MME_MSG_TYPE_DOWNLINK_GENERIC_NAS_TRANSPORT 0x68
 #define LIBLTE_MME_MSG_TYPE_UPLINK_GENERIC_NAS_TRANSPORT 0x69
+#define LIBLTE_MME_MSG_TYPE_CLOSE_UE_TEST_LOOP 0x80
+#define LIBLTE_MME_MSG_TYPE_CLOSE_UE_TEST_LOOP_COMPLETE 0x81
+#define LIBLTE_MME_MSG_TYPE_OPEN_UE_TEST_LOOP 0x82
+#define LIBLTE_MME_MSG_TYPE_OPEN_UE_TEST_LOOP_COMPLETE 0x83
 #define LIBLTE_MME_MSG_TYPE_ACTIVATE_TEST_MODE 0x84
 #define LIBLTE_MME_MSG_TYPE_ACTIVATE_TEST_MODE_COMPLETE 0x85
-#define LIBLTE_MME_MSG_TYPE_DEACTIVATE_TEST MODE 0x86
+#define LIBLTE_MME_MSG_TYPE_DEACTIVATE_TEST_MODE 0x86
 #define LIBLTE_MME_MSG_TYPE_DEACTIVATE_TEST_MODE_COMPLETE 0x87
 #define LIBLTE_MME_MSG_TYPE_ACTIVATE_DEFAULT_EPS_BEARER_CONTEXT_REQUEST 0xC1
 #define LIBLTE_MME_MSG_TYPE_ACTIVATE_DEFAULT_EPS_BEARER_CONTEXT_ACCEPT 0xC2
@@ -2683,7 +2710,7 @@ liblte_mme_unpack_authentication_response_msg(LIBLTE_BYTE_MSG_STRUCT*           
 // Enums
 // Structs
 // Functions
-// FIXME
+// TODO
 
 /*********************************************************************
     Message Name: Detach Accept
@@ -2895,12 +2922,13 @@ typedef struct {
 } LIBLTE_MME_GUTI_REALLOCATION_COMPLETE_MSG_STRUCT;
 // Functions
 LIBLTE_ERROR_ENUM
-                  liblte_mme_pack_guti_reallocation_complete_msg(LIBLTE_MME_GUTI_REALLOCATION_COMPLETE_MSG_STRUCT* guti_realloc_complete,
-                                                                 uint8                                             sec_hdr_type,
-                                                                 uint32                                            count,
-                                                                 LIBLTE_BYTE_MSG_STRUCT*                           msg);
+liblte_mme_pack_guti_reallocation_complete_msg(LIBLTE_MME_GUTI_REALLOCATION_COMPLETE_MSG_STRUCT* guti_realloc_complete,
+                                               uint8                                             sec_hdr_type,
+                                               uint32                                            count,
+                                               LIBLTE_BYTE_MSG_STRUCT*                           msg);
 LIBLTE_ERROR_ENUM liblte_mme_unpack_guti_reallocation_complete_msg(
-    LIBLTE_BYTE_MSG_STRUCT* msg, LIBLTE_MME_GUTI_REALLOCATION_COMPLETE_MSG_STRUCT* guti_realloc_complete);
+    LIBLTE_BYTE_MSG_STRUCT*                           msg,
+    LIBLTE_MME_GUTI_REALLOCATION_COMPLETE_MSG_STRUCT* guti_realloc_complete);
 
 /*********************************************************************
     Message Name: Identity Request
@@ -3150,7 +3178,8 @@ LIBLTE_ERROR_ENUM liblte_mme_pack_tracking_area_update_complete_msg(
     uint32                                               count,
     LIBLTE_BYTE_MSG_STRUCT*                              msg);
 LIBLTE_ERROR_ENUM liblte_mme_unpack_tracking_area_update_complete_msg(
-    LIBLTE_BYTE_MSG_STRUCT* msg, LIBLTE_MME_TRACKING_AREA_UPDATE_COMPLETE_MSG_STRUCT* ta_update_complete);
+    LIBLTE_BYTE_MSG_STRUCT*                              msg,
+    LIBLTE_MME_TRACKING_AREA_UPDATE_COMPLETE_MSG_STRUCT* ta_update_complete);
 
 /*********************************************************************
     Message Name: Tracking Area Update Reject
@@ -3190,7 +3219,7 @@ liblte_mme_unpack_tracking_area_update_reject_msg(LIBLTE_BYTE_MSG_STRUCT*       
 // Enums
 // Structs
 // Functions
-// FIXME
+// TODO
 
 /*********************************************************************
     Message Name: Uplink NAS Transport
@@ -3239,7 +3268,8 @@ LIBLTE_ERROR_ENUM liblte_mme_pack_downlink_generic_nas_transport_msg(
     uint32                                                count,
     LIBLTE_BYTE_MSG_STRUCT*                               msg);
 LIBLTE_ERROR_ENUM liblte_mme_unpack_downlink_generic_nas_transport_msg(
-    LIBLTE_BYTE_MSG_STRUCT* msg, LIBLTE_MME_DOWNLINK_GENERIC_NAS_TRANSPORT_MSG_STRUCT* dl_generic_nas_transport);
+    LIBLTE_BYTE_MSG_STRUCT*                               msg,
+    LIBLTE_MME_DOWNLINK_GENERIC_NAS_TRANSPORT_MSG_STRUCT* dl_generic_nas_transport);
 
 /*********************************************************************
     Message Name: Uplink Generic NAS Transport
@@ -3265,7 +3295,8 @@ LIBLTE_ERROR_ENUM liblte_mme_pack_uplink_generic_nas_transport_msg(
     uint32                                              count,
     LIBLTE_BYTE_MSG_STRUCT*                             msg);
 LIBLTE_ERROR_ENUM liblte_mme_unpack_uplink_generic_nas_transport_msg(
-    LIBLTE_BYTE_MSG_STRUCT* msg, LIBLTE_MME_UPLINK_GENERIC_NAS_TRANSPORT_MSG_STRUCT* ul_generic_nas_transport);
+    LIBLTE_BYTE_MSG_STRUCT*                             msg,
+    LIBLTE_MME_UPLINK_GENERIC_NAS_TRANSPORT_MSG_STRUCT* ul_generic_nas_transport);
 
 /*********************************************************************
     Message Name: Activate Dedicated EPS Bearer Context Accept
@@ -3489,9 +3520,11 @@ typedef struct {
 } LIBLTE_MME_BEARER_RESOURCE_ALLOCATION_REJECT_MSG_STRUCT;
 // Functions
 LIBLTE_ERROR_ENUM liblte_mme_pack_bearer_resource_allocation_reject_msg(
-    LIBLTE_MME_BEARER_RESOURCE_ALLOCATION_REJECT_MSG_STRUCT* bearer_res_alloc_rej, LIBLTE_BYTE_MSG_STRUCT* msg);
+    LIBLTE_MME_BEARER_RESOURCE_ALLOCATION_REJECT_MSG_STRUCT* bearer_res_alloc_rej,
+    LIBLTE_BYTE_MSG_STRUCT*                                  msg);
 LIBLTE_ERROR_ENUM liblte_mme_unpack_bearer_resource_allocation_reject_msg(
-    LIBLTE_BYTE_MSG_STRUCT* msg, LIBLTE_MME_BEARER_RESOURCE_ALLOCATION_REJECT_MSG_STRUCT* bearer_res_alloc_rej);
+    LIBLTE_BYTE_MSG_STRUCT*                                  msg,
+    LIBLTE_MME_BEARER_RESOURCE_ALLOCATION_REJECT_MSG_STRUCT* bearer_res_alloc_rej);
 
 /*********************************************************************
     Message Name: Bearer Resource Allocation Request
@@ -3518,9 +3551,11 @@ typedef struct {
 } LIBLTE_MME_BEARER_RESOURCE_ALLOCATION_REQUEST_MSG_STRUCT;
 // Functions
 LIBLTE_ERROR_ENUM liblte_mme_pack_bearer_resource_allocation_request_msg(
-    LIBLTE_MME_BEARER_RESOURCE_ALLOCATION_REQUEST_MSG_STRUCT* bearer_res_alloc_req, LIBLTE_BYTE_MSG_STRUCT* msg);
+    LIBLTE_MME_BEARER_RESOURCE_ALLOCATION_REQUEST_MSG_STRUCT* bearer_res_alloc_req,
+    LIBLTE_BYTE_MSG_STRUCT*                                   msg);
 LIBLTE_ERROR_ENUM liblte_mme_unpack_bearer_resource_allocation_request_msg(
-    LIBLTE_BYTE_MSG_STRUCT* msg, LIBLTE_MME_BEARER_RESOURCE_ALLOCATION_REQUEST_MSG_STRUCT* bearer_res_alloc_req);
+    LIBLTE_BYTE_MSG_STRUCT*                                   msg,
+    LIBLTE_MME_BEARER_RESOURCE_ALLOCATION_REQUEST_MSG_STRUCT* bearer_res_alloc_req);
 
 /*********************************************************************
     Message Name: Bearer Resource Modification Reject
@@ -3544,9 +3579,11 @@ typedef struct {
 } LIBLTE_MME_BEARER_RESOURCE_MODIFICATION_REJECT_MSG_STRUCT;
 // Functions
 LIBLTE_ERROR_ENUM liblte_mme_pack_bearer_resource_modification_reject_msg(
-    LIBLTE_MME_BEARER_RESOURCE_MODIFICATION_REJECT_MSG_STRUCT* bearer_res_mod_rej, LIBLTE_BYTE_MSG_STRUCT* msg);
+    LIBLTE_MME_BEARER_RESOURCE_MODIFICATION_REJECT_MSG_STRUCT* bearer_res_mod_rej,
+    LIBLTE_BYTE_MSG_STRUCT*                                    msg);
 LIBLTE_ERROR_ENUM liblte_mme_unpack_bearer_resource_modification_reject_msg(
-    LIBLTE_BYTE_MSG_STRUCT* msg, LIBLTE_MME_BEARER_RESOURCE_MODIFICATION_REJECT_MSG_STRUCT* bearer_res_mod_rej);
+    LIBLTE_BYTE_MSG_STRUCT*                                    msg,
+    LIBLTE_MME_BEARER_RESOURCE_MODIFICATION_REJECT_MSG_STRUCT* bearer_res_mod_rej);
 
 /*********************************************************************
     Message Name: Bearer Resource Modification Request
@@ -3577,9 +3614,11 @@ typedef struct {
 } LIBLTE_MME_BEARER_RESOURCE_MODIFICATION_REQUEST_MSG_STRUCT;
 // Functions
 LIBLTE_ERROR_ENUM liblte_mme_pack_bearer_resource_modification_request_msg(
-    LIBLTE_MME_BEARER_RESOURCE_MODIFICATION_REQUEST_MSG_STRUCT* bearer_res_mod_req, LIBLTE_BYTE_MSG_STRUCT* msg);
+    LIBLTE_MME_BEARER_RESOURCE_MODIFICATION_REQUEST_MSG_STRUCT* bearer_res_mod_req,
+    LIBLTE_BYTE_MSG_STRUCT*                                     msg);
 LIBLTE_ERROR_ENUM liblte_mme_unpack_bearer_resource_modification_request_msg(
-    LIBLTE_BYTE_MSG_STRUCT* msg, LIBLTE_MME_BEARER_RESOURCE_MODIFICATION_REQUEST_MSG_STRUCT* bearer_res_mod_req);
+    LIBLTE_BYTE_MSG_STRUCT*                                     msg,
+    LIBLTE_MME_BEARER_RESOURCE_MODIFICATION_REQUEST_MSG_STRUCT* bearer_res_mod_req);
 
 /*********************************************************************
     Message Name: Deactivate EPS Bearer Context Accept
@@ -3744,7 +3783,8 @@ LIBLTE_ERROR_ENUM liblte_mme_pack_modify_eps_bearer_context_accept_msg(
     uint32                                                  count,
     LIBLTE_BYTE_MSG_STRUCT*                                 msg);
 LIBLTE_ERROR_ENUM liblte_mme_unpack_modify_eps_bearer_context_accept_msg(
-    LIBLTE_BYTE_MSG_STRUCT* msg, LIBLTE_MME_MODIFY_EPS_BEARER_CONTEXT_ACCEPT_MSG_STRUCT* mod_eps_bearer_context_accept);
+    LIBLTE_BYTE_MSG_STRUCT*                                 msg,
+    LIBLTE_MME_MODIFY_EPS_BEARER_CONTEXT_ACCEPT_MSG_STRUCT* mod_eps_bearer_context_accept);
 
 /*********************************************************************
     Message Name: Modify EPS Bearer Context Reject
@@ -3766,9 +3806,11 @@ typedef struct {
 } LIBLTE_MME_MODIFY_EPS_BEARER_CONTEXT_REJECT_MSG_STRUCT;
 // Functions
 LIBLTE_ERROR_ENUM liblte_mme_pack_modify_eps_bearer_context_reject_msg(
-    LIBLTE_MME_MODIFY_EPS_BEARER_CONTEXT_REJECT_MSG_STRUCT* mod_eps_bearer_context_rej, LIBLTE_BYTE_MSG_STRUCT* msg);
+    LIBLTE_MME_MODIFY_EPS_BEARER_CONTEXT_REJECT_MSG_STRUCT* mod_eps_bearer_context_rej,
+    LIBLTE_BYTE_MSG_STRUCT*                                 msg);
 LIBLTE_ERROR_ENUM liblte_mme_unpack_modify_eps_bearer_context_reject_msg(
-    LIBLTE_BYTE_MSG_STRUCT* msg, LIBLTE_MME_MODIFY_EPS_BEARER_CONTEXT_REJECT_MSG_STRUCT* mod_eps_bearer_context_rej);
+    LIBLTE_BYTE_MSG_STRUCT*                                 msg,
+    LIBLTE_MME_MODIFY_EPS_BEARER_CONTEXT_REJECT_MSG_STRUCT* mod_eps_bearer_context_rej);
 
 /*********************************************************************
     Message Name: Modify EPS Bearer Context Request
@@ -3805,9 +3847,11 @@ typedef struct {
 } LIBLTE_MME_MODIFY_EPS_BEARER_CONTEXT_REQUEST_MSG_STRUCT;
 // Functions
 LIBLTE_ERROR_ENUM liblte_mme_pack_modify_eps_bearer_context_request_msg(
-    LIBLTE_MME_MODIFY_EPS_BEARER_CONTEXT_REQUEST_MSG_STRUCT* mod_eps_bearer_context_req, LIBLTE_BYTE_MSG_STRUCT* msg);
+    LIBLTE_MME_MODIFY_EPS_BEARER_CONTEXT_REQUEST_MSG_STRUCT* mod_eps_bearer_context_req,
+    LIBLTE_BYTE_MSG_STRUCT*                                  msg);
 LIBLTE_ERROR_ENUM liblte_mme_unpack_modify_eps_bearer_context_request_msg(
-    LIBLTE_BYTE_MSG_STRUCT* msg, LIBLTE_MME_MODIFY_EPS_BEARER_CONTEXT_REQUEST_MSG_STRUCT* mod_eps_bearer_context_req);
+    LIBLTE_BYTE_MSG_STRUCT*                                  msg,
+    LIBLTE_MME_MODIFY_EPS_BEARER_CONTEXT_REQUEST_MSG_STRUCT* mod_eps_bearer_context_req);
 
 /*********************************************************************
     Message Name: Notification
@@ -3962,5 +4006,31 @@ liblte_mme_unpack_pdn_disconnect_request_msg(LIBLTE_BYTE_MSG_STRUCT*            
 // Functions
 LIBLTE_ERROR_ENUM
 liblte_mme_pack_activate_test_mode_complete_msg(LIBLTE_BYTE_MSG_STRUCT* msg, uint8 sec_hdr_type, uint32 count);
+
+// UE test mode type
+typedef enum {
+  LIBLTE_MME_UE_TEST_LOOP_MODE_A = 0,
+  LIBLTE_MME_UE_TEST_LOOP_MODE_B,
+  LIBLTE_MME_UE_TEST_LOOP_MODE_C,
+  LIBLTE_MME_UE_TEST_LOOP_MODE_N_ITEMS,
+} LIBLTE_MME_UE_TEST_LOOP_MODE_ENUM;
+static const char liblte_ue_test_loop_mode_text[LIBLTE_MME_UE_TEST_LOOP_MODE_N_ITEMS][20] = {"UE test loop mode A",
+                                                                                             "UE test loop mode B",
+                                                                                             "UE test loop mode C"};
+
+/*********************************************************************
+    Message Name: CLOSE UE TEST LOOP COMPLETE
+
+    Description: Sent by the UE to the network in response to a
+                 CLOSE UE TEST LOOP message.
+
+    Document Reference: 36.509 v8.7.0 Section 6.2
+*********************************************************************/
+// Defines
+// Enums
+// Structs
+// Functions
+LIBLTE_ERROR_ENUM
+liblte_mme_pack_close_ue_test_loop_complete_msg(LIBLTE_BYTE_MSG_STRUCT* msg, uint8 sec_hdr_type, uint32 count);
 
 #endif // SRSLTE_LIBLTE_MME_H

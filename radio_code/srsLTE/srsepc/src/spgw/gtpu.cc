@@ -1,5 +1,5 @@
 /*
- * Copyright 2013-2019 Software Radio Systems Limited
+ * Copyright 2013-2020 Software Radio Systems Limited
  *
  * This file is part of srsLTE.
  *
@@ -52,7 +52,7 @@ spgw::gtpu::~gtpu()
   return;
 }
 
-int spgw::gtpu::init(spgw_args_t* args, spgw* spgw, gtpc_interface_gtpu* gtpc, srslte::log_filter* gtpu_log)
+int spgw::gtpu::init(spgw_args_t* args, spgw* spgw, gtpc_interface_gtpu* gtpc, srslte::log_ref gtpu_log)
 {
   int err;
 
@@ -113,8 +113,8 @@ int spgw::gtpu::init_sgi(spgw_args_t* args)
 
   memset(&ifr, 0, sizeof(ifr));
   ifr.ifr_flags = IFF_TUN | IFF_NO_PI;
-  strncpy(ifr.ifr_ifrn.ifrn_name, args->sgi_if_name.c_str(),
-          std::min(args->sgi_if_name.length(), (size_t)(IFNAMSIZ - 1)));
+  strncpy(
+      ifr.ifr_ifrn.ifrn_name, args->sgi_if_name.c_str(), std::min(args->sgi_if_name.length(), (size_t)(IFNAMSIZ - 1)));
   ifr.ifr_ifrn.ifrn_name[IFNAMSIZ - 1] = '\0';
 
   if (ioctl(m_sgi, TUNSETIFF, &ifr) < 0) {
@@ -146,8 +146,8 @@ int spgw::gtpu::init_sgi(spgw_args_t* args)
   addr->sin_port           = 0;
 
   if (ioctl(sgi_sock, SIOCSIFADDR, &ifr) < 0) {
-    m_gtpu_log->error("Failed to set TUN interface IP. Address: %s, Error: %s\n", args->sgi_if_addr.c_str(),
-                      strerror(errno));
+    m_gtpu_log->error(
+        "Failed to set TUN interface IP. Address: %s, Error: %s\n", args->sgi_if_addr.c_str(), strerror(errno));
     close(m_sgi);
     close(sgi_sock);
     return SRSLTE_ERROR_CANT_START;
@@ -214,7 +214,7 @@ void spgw::gtpu::handle_sgi_pdu(srslte::byte_buffer_t* msg)
     return;
   }
   if (ntohs(iph->tot_len) < 20) {
-    m_gtpu_log->warning("Invalid IP header length. IP lenght %d.\n", ntohs(iph->tot_len));
+    m_gtpu_log->warning("Invalid IP header length. IP length %d.\n", ntohs(iph->tot_len));
     return;
   }
 
@@ -332,7 +332,8 @@ bool spgw::gtpu::modify_gtpu_tunnel(in_addr_t ue_ipv4, srslte::gtpc_f_teid_ie dw
 {
   m_gtpu_log->info("Modifying GTP-U Tunnel.\n");
   m_gtpu_log->info("UE IP %s\n", srslte::gtpu_ntoa(ue_ipv4).c_str());
-  m_gtpu_log->info("Downlink eNB addr %s, U-TEID 0x%x\n", srslte::gtpu_ntoa(dw_user_fteid.ipv4).c_str(), dw_user_fteid.teid);
+  m_gtpu_log->info(
+      "Downlink eNB addr %s, U-TEID 0x%x\n", srslte::gtpu_ntoa(dw_user_fteid.ipv4).c_str(), dw_user_fteid.teid);
   m_gtpu_log->info("Uplink C-TEID: 0x%x\n", up_ctrl_teid);
   m_ip_to_usr_teid[ue_ipv4] = dw_user_fteid;
   m_ip_to_ctr_teid[ue_ipv4] = up_ctrl_teid;

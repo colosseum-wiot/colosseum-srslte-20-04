@@ -1,5 +1,5 @@
 /*
- * Copyright 2013-2019 Software Radio Systems Limited
+ * Copyright 2013-2020 Software Radio Systems Limited
  *
  * This file is part of srsLTE.
  *
@@ -66,9 +66,8 @@ private:
   virtual ~mme_gtpc();
   static mme_gtpc* m_instance;
 
-  srslte::log_filter*       m_mme_gtpc_log;
-  srslte::byte_buffer_pool* m_pool;
-  s1ap*                     m_s1ap;
+  srslte::log_filter* m_mme_gtpc_log;
+  s1ap*               m_s1ap;
 
   uint32_t                            m_next_ctrl_teid;
   std::map<uint32_t, uint64_t>        m_mme_ctr_teid_to_imsi;
@@ -76,7 +75,7 @@ private:
 
   int                m_s11;
   struct sockaddr_un m_mme_addr, m_spgw_addr;
-  in_addr_t m_mme_gtpc_ip;
+  in_addr_t          m_mme_gtpc_ip;
 
   bool     init_s11();
   uint32_t get_new_ctrl_teid();

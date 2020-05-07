@@ -1,5 +1,5 @@
 /*
- * Copyright 2013-2019 Software Radio Systems Limited
+ * Copyright 2013-2020 Software Radio Systems Limited
  *
  * This file is part of srsLTE.
  *
@@ -40,10 +40,8 @@ std::unique_ptr<usim_base> usim_base::get_instance(usim_args_t* args, srslte::lo
   return std::unique_ptr<usim_base>(new usim(log_));
 }
 
-usim_base::usim_base() {
-}
+usim_base::usim_base() {}
 
-usim_base::~usim_base() {
-}
+usim_base::~usim_base() {}
 
 } // namespace srsue
