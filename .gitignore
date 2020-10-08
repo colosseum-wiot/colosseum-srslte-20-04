@@ -38,3 +38,13 @@ radio_code/srsLTE/build/*
 *.out
 *.app
 *.pyc
+
+.Xauthority
+.bash_history
+.bashrc
+.cache/
+.config/
+.profile
+.ssh/
+.viminfo
+colosseum-cli-install/
